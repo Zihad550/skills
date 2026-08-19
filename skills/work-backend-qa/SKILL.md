@@ -31,3 +31,7 @@ disable-model-invocation: true
    - tests and checks run, including failures or environmental limitations.
 
 Complete the workflow only after every acceptance criterion has been checked and every affected frontend feature has either been browser-tested or clearly documented as untestable with the reason.
+
+
+
+test changes updated with cli
