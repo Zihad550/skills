@@ -20,14 +20,14 @@ disable-model-invocation: true
 
 3. Determine which frontend features are affected by the change, if any. Inspect `../frontend` and trace the changed backend contract through its consumers. For every affected interactive feature, use the `/webapp-testing` skill to exercise the relevant user flow in a browser. Record the route, setup/data used, actions, and observed result.
 
-4. Look for implementation bugs. Review every category: error handling, validation, authorization, persistence, backwards compatibility, race conditions, and test coverage. Run focused tests and other relevant checks available in the repository. Report concrete findings with severity, evidence, and file/line references.
+4. Review every category for implementation bugs: error handling, validation, authorization, persistence, backwards compatibility, race conditions, and test coverage. Run focused tests and other relevant checks available in the repository. Report concrete findings with severity, evidence, and file/line references.
 
 5. Produce a final report containing:
 
    - whether the issue changes landed on this branch;
    - bugs and risks, ordered by severity, or an explicit statement that none were found;
    - the list of affected frontend features, or an explicit statement that none were affected;
-   - manual verification steps for each affected frontend feature, including expected results;
+   - manual verification steps for each affected frontend feature, so a human can re-verify independently of the browser run, including expected results;
    - tests and checks run, including failures or environmental limitations.
 
 Complete the workflow only after every acceptance criterion has been checked and every affected frontend feature has either been browser-tested or clearly documented as untestable with the reason.
