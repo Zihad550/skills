@@ -1,11 +1,10 @@
 ---
 name: work-backend-qa
-description: QA a backend issue implementation by checking the issue, branch changes, frontend impact, browser behavior, and implementation bugs. Use when validating whether a backend issue is complete and safe to ship.
+description: QA a backend issue implementation — checks completion, frontend impact, and implementation bugs.
+disable-model-invocation: true
 ---
 
 # Backend QA
-
-Validate a backend issue implementation and report both defects and affected frontend behavior.
 
 ## Workflow
 
@@ -21,7 +20,7 @@ Validate a backend issue implementation and report both defects and affected fro
 
 3. Determine which frontend features are affected by the change, if any. Inspect `../frontend` and trace the changed backend contract through its consumers. For every affected interactive feature, use the `/webapp-testing` skill to exercise the relevant user flow in a browser. Record the route, setup/data used, actions, and observed result.
 
-4. Look for implementation bugs. Review error handling, validation, authorization, persistence, backwards compatibility, race conditions, and test coverage. Run focused tests and other relevant checks available in the repository. Report concrete findings with severity, evidence, and file/line references.
+4. Look for implementation bugs. Review every category: error handling, validation, authorization, persistence, backwards compatibility, race conditions, and test coverage. Run focused tests and other relevant checks available in the repository. Report concrete findings with severity, evidence, and file/line references.
 
 5. Produce a final report containing:
 
