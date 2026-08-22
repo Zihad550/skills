@@ -80,6 +80,31 @@ Reading a status:
 - `done` grows but the tree is dirty → the agent closed an issue while leaving
   uncommitted work. Flag it; that usually means a partial implementation.
 
+## Running more than one
+
+**One ralph per checkout**, enforced by a lock in `.ralph/lock.d`. If starting one
+reports `already running (pid N)`, do not delete the lock to force it — check
+`ralph --status` first; a second loop in one working tree interleaves two agents'
+commits on one branch. A lock held by a dead process is cleared automatically.
+
+Different repos need no coordination at all.
+
+To work one repo in parallel, give each loop its own checkout and turn on claiming:
+
+```bash
+git worktree add ../repo-b -b ralph-b
+RALPH_CLAIM=1 ralph &            # in each checkout
+```
+
+`RALPH_CLAIM=1` assigns each issue to `@me` before work starts and drops assigned
+issues from the frontier, so two loops never take the same ticket. A failed attempt
+releases the issue; a **parked** issue keeps its assignee on purpose, so no other
+worker grinds through the same broken ticket. Never suggest claiming for a single
+loop — it only adds assignee churn.
+
+Watch for the shared-resource collision that survives all of this: two
+browser-verifying agents reaching for the same dev-server port.
+
 ## Stopping
 
 `Ctrl-C`, or kill the pid in `state.json`. The loop traps the signal, writes
