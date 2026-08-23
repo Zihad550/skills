@@ -58,7 +58,7 @@ Underneath, in the repo's `.ralph/`:
 |---|---|
 | `state.json` | machine-readable status, current issue + attempt, `done`, `parked`, frontier |
 | `ralph.log` | append-only timeline — grep `picked\|closed\|parked\|WARN` |
-| `heartbeat` | written every 15s **only while a run is in flight**; a stale one means the run ended or hung |
+| `heartbeat` | rewritten every 15s **only while a run is in flight**. Its timestamp tracks ralph, not opencode — read the `lines=` counter inside it, not the file's age |
 | `current.log` | symlink to the live transcript; absent when idle |
 | `logs/` | full transcript per attempt, named `issue-N-attemptK-*.log` |
 
@@ -70,15 +70,61 @@ tail -f .ralph/ralph.log | grep --line-buffered -E "picked|closed|parked|WARN|do
 
 Reading a status:
 
-- `status: running` + a **fresh** heartbeat → healthy, leave it alone.
-- `status: running` + a heartbeat older than a couple of minutes → the run is
-  wedged; it will be killed at `RALPH_RUN_TIMEOUT` anyway. Show the user the
-  transcript tail before suggesting a kill.
+- `status: running` + `lines=` still climbing → healthy, leave it alone.
+- `status: running` + `lines=` flat across two looks minutes apart → **hung**.
+  See "Telling a hang from slow work" below.
 - `parked: #N` → the issue survived every attempt without closing. Read
   `logs/issue-N-attempt*.log` and the issue's comments to find out why. Parking
   is the loop protecting itself from an infinite retry, not a bug.
 - `done` grows but the tree is dirty → the agent closed an issue while leaving
   uncommitted work. Flag it; that usually means a partial implementation.
+
+## Telling a hang from slow work
+
+`RALPH_RUN_TIMEOUT` is a ceiling, not a wait. `bin/ralph` runs opencode as a
+blocking foreground call, so **whenever opencode exits, ralph returns within
+seconds** — a crash, a dropped connection, a provider `Service Unavailable`, a
+clean finish. Only one case burns the full timeout: opencode still alive but
+producing nothing, which is what a model that stops responding mid-stream looks
+like. The connection stays open, opencode blocks on it, and `timeout` fires at
+`RALPH_RUN_TIMEOUT` with `rc=124`.
+
+**The heartbeat's freshness cannot tell you which is happening.** It is written
+by a subshell on ralph's own 15s timer, independent of opencode, so it stays
+fresh right through an hour-long hang — it only goes stale if ralph itself dies.
+What it carries is the signal:
+
+```
+alive 2026-08-23T15:11:56+06:00  lines=1847  last=→ Read src/components/FaresPage.tsx
+```
+
+`lines=` is the transcript's line count. Compare it across two looks a few
+minutes apart:
+
+```bash
+ralph --status | grep heartbeat     # note lines=
+# …several minutes later…
+ralph --status | grep heartbeat     # climbing = working, flat = hung
+```
+
+Equivalently, watch whether `.ralph/current.log`'s mtime advances.
+
+When supervising a run, check this **occasionally and spaced out** — every few
+minutes at most, never in a tight loop. A flat counter is worth surfacing to the
+user with the transcript tail: a hang donates the rest of the hour to nothing,
+and killing it early frees the attempt. A climbing counter means leave it alone,
+however slow it looks.
+
+This also decides whether raising `RALPH_RUN_TIMEOUT` would have helped. Compare
+the transcript's last write against the kill time:
+
+```bash
+ls -la --time-style=+%H:%M:%S .ralph/logs/ | tail
+```
+
+Silent for most of the run → it hung, and more clock buys nothing. Writing until
+seconds before the kill → genuinely slow, and a larger timeout is the fix. Do not
+recommend raising the timeout without checking which one it was.
 
 ## Running more than one
 
