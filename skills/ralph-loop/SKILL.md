@@ -43,6 +43,14 @@ ralph              # drain the queue
 Start it as a **background** process so you stay responsive, and tell the user
 which mode you used. A run can take many minutes; never poll it in a tight loop.
 
+**Then arm the stall monitor, in the same turn.** Backgrounding gets you a
+notification when opencode *exits* — but a hang is precisely the case where it
+does not exit, so that notification never fires and the run silently donates
+the rest of `RALPH_RUN_TIMEOUT` to nothing. Promising yourself you will "check
+the heartbeat occasionally" is not a mechanism; the monitor below is. See
+"Telling a hang from slow work" for the script and why it watches what it
+watches.
+
 ## Supervising
 
 One command, readable whether or not the loop is running, from any session:
@@ -109,11 +117,48 @@ ralph --status | grep heartbeat     # climbing = working, flat = hung
 
 Equivalently, watch whether `.ralph/current.log`'s mtime advances.
 
-When supervising a run, check this **occasionally and spaced out** — every few
-minutes at most, never in a tight loop. A flat counter is worth surfacing to the
-user with the transcript tail: a hang donates the rest of the hour to nothing,
-and killing it early frees the attempt. A climbing counter means leave it alone,
-however slow it looks.
+Do not leave this to memory. Arm one monitor when you start the run and let it
+tell you — edge-triggered, so a healthy run is silent and only a stall or the
+end of the run produces an event:
+
+```bash
+cd /path/to/repo
+prev=-1; flat=0
+while true; do
+  st=$(jq -r '.status // "unknown"' .ralph/state.json 2>/dev/null || echo unknown)
+  if [ "$st" != "running" ]; then
+    echo "ralph ENDED status=$st done=$(jq -c '.done' .ralph/state.json 2>/dev/null) parked=$(jq -c '.parked' .ralph/state.json 2>/dev/null)"
+    tail -n 3 .ralph/ralph.log 2>/dev/null
+    break
+  fi
+  cur=$(wc -l < .ralph/current.log 2>/dev/null || echo 0)
+  if [ "$cur" -eq "$prev" ]; then
+    flat=$((flat+1))
+    if [ "$flat" -eq 2 ]; then
+      echo "STALL? transcript flat at ${cur} lines for ~4m | last: $(tail -c 220 .ralph/current.log 2>/dev/null | tr '\n' ' ')"
+    elif [ "$flat" -eq 8 ]; then
+      echo "STALL CONFIRMED flat at ${cur} lines for ~16m — hung, burning the timeout for nothing"
+    fi
+  else
+    if [ "$flat" -ge 2 ]; then echo "recovered — transcript moving again at ${cur} lines"; fi
+    flat=0
+  fi
+  prev=$cur
+  sleep 120
+done
+```
+
+Run it `persistent`, since a run outlives the default monitor timeout. It
+covers **both** terminal states and stalls, which matters: a monitor that only
+watched for a stall would stay silent through a normal finish, and silence
+would be indistinguishable from a healthy run.
+
+Two flat checks (~4 minutes) is a question, not a verdict — a long file read or
+a slow provider can go quiet that long. Eight (~16 minutes) is the answer. When
+it fires, surface it to the user with the transcript tail and offer to kill the
+attempt: a hang donates the rest of the hour to nothing, and killing it early
+frees the attempt. A climbing counter means leave it alone, however slow it
+looks.
 
 This also decides whether raising `RALPH_RUN_TIMEOUT` would have helped. Compare
 the transcript's last write against the kill time:
