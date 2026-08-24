@@ -1,5 +1,5 @@
 ---
-name: ralph-loop
+name: ralph-loop-implement
 displayName: Run and supervise the ralph issue-queue loop
 description: Run and supervise `ralph` — the unattended loop that drains a repo's ready-for-agent GitHub issues one at a time with opencode, committing and closing each. Use when asked to work through the issue queue unattended, to start/stop/check on ralph, to read .ralph/state.json or .ralph/ralph.log, or to explain why the loop parked or stalled on an issue.
 version: 1.0.0
@@ -40,14 +40,15 @@ ralph --once       # one issue, then stop — always prefer this for a first run
 ralph              # drain the queue
 ```
 
-Start it as a **background** process so you stay responsive, and tell the user
-which mode you used. A run can take many minutes; never poll it in a tight loop.
+Start it as a **managed long-running shell session** so you stay responsive.
+Retain the session handle and tell the user which mode you used. A run can take
+many minutes; wait on the session with long yields rather than polling it in a
+tight loop.
 
-**Then arm the stall monitor, in the same turn.** Backgrounding gets you a
-notification when opencode *exits* — but a hang is precisely the case where it
-does not exit, so that notification never fires and the run silently donates
-the rest of `RALPH_RUN_TIMEOUT` to nothing. Promising yourself you will "check
-the heartbeat occasionally" is not a mechanism; the monitor below is. See
+**Then arm the stall monitor, in the same turn.** The ralph session completes
+when opencode exits, but a hang is precisely the case where it does not exit.
+Without a second session watching progress, the run silently donates the rest
+of `RALPH_RUN_TIMEOUT` to nothing. The monitor below is the mechanism. See
 "Telling a hang from slow work" for the script and why it watches what it
 watches.
 
@@ -148,10 +149,18 @@ while true; do
 done
 ```
 
-Run it `persistent`, since a run outlives the default monitor timeout. It
-covers **both** terminal states and stalls, which matters: a monitor that only
-watched for a stall would stay silent through a normal finish, and silence
-would be indistinguishable from a healthy run.
+In Codex, run this monitor in its own managed shell session. Let the initial
+shell call yield and retain the returned session handle, then wait on that
+session with empty-input polls and long yields. Keep the current turn active,
+or the current Goal active when running in Goal mode, until the monitor reports
+`ENDED`. Relay `STALL?`, `STALL CONFIRMED`, recovery, and terminal output as it
+arrives. Do not detach it with `&`; Codex needs the session handle to wait for
+output and stop it cleanly.
+
+On another agent, use its equivalent managed background-session or recurring
+monitor facility. The requirement is observable behavior: the monitor must
+survive the initial tool timeout, report terminal states, and surface stall
+events without manual polling.
 
 Two flat checks (~4 minutes) is a question, not a verdict — a long file read or
 a slow provider can go quiet that long. Eight (~16 minutes) is the answer. When

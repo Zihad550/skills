@@ -2,7 +2,7 @@
 
 Two prompts came out of building the ralph loop, and only one of them is a skill.
 
-`ralph-loop` is the **operator** prompt: how to preflight a queue, start the loop,
+`ralph-loop-implement` is the **operator** prompt: how to preflight a queue, start the loop,
 read `.ralph/state.json`, tell a healthy run from a wedged one, and interpret a
 parked issue. A person asks an agent for that — "work through the queue", "what is
 ralph doing" — so it belongs in this repo, where the `skills` CLI installs it to
