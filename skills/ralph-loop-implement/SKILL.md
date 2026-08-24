@@ -40,17 +40,64 @@ ralph --once       # one issue, then stop — always prefer this for a first run
 ralph              # drain the queue
 ```
 
-Start it as a **managed long-running shell session** so you stay responsive.
-Retain the session handle and tell the user which mode you used. A run can take
-many minutes; wait on the session with long yields rather than polling it in a
-tight loop.
+Start it as a long-running background call so you stay responsive, and tell the
+user which mode you used. A run can take many minutes; wait on it with long
+yields rather than polling in a tight loop.
 
-**Then arm the stall monitor, in the same turn.** The ralph session completes
-when opencode exits, but a hang is precisely the case where it does not exit.
-Without a second session watching progress, the run silently donates the rest
-of `RALPH_RUN_TIMEOUT` to nothing. The monitor below is the mechanism. See
-"Telling a hang from slow work" for the script and why it watches what it
-watches.
+**Then arm the stall watch, in the same turn.** The ralph call returns when
+opencode exits — and a hang is exactly the case where it never exits, so that
+return never comes and the run donates the rest of `RALPH_RUN_TIMEOUT` to
+nothing. Only a second watch can tell you.
+
+**Armed** is a binary state, and it is this step's completion criterion: a watch
+is armed when its events reach you *while ralph is still running*, and it
+outlives `RALPH_RUN_TIMEOUT` (3600s by default). A call that reports only once
+it exits is **parked** — it cannot warn you about a hang, because a hang is the
+case where it never exits. Arm the watch with your harness's push-based
+notification facility, the one that emits per event rather than per completion:
+
+| Harness | Armed | Parked — reports only on exit |
+|---|---|---|
+| Claude Code | `Monitor(command: …, persistent: true)` | `Bash(run_in_background: true)` |
+| Codex | its own managed shell session, held by the session handle | a detached `&` |
+
+Arm it with this script — it watches the transcript's line count, for the
+reasons in "Telling a hang from slow work":
+
+```bash
+cd /path/to/repo
+prev=-1; flat=0
+while true; do
+  st=$(jq -r '.status // "unknown"' .ralph/state.json 2>/dev/null || echo unknown)
+  if [ "$st" != "running" ]; then
+    echo "ralph ENDED status=$st done=$(jq -c '.done' .ralph/state.json 2>/dev/null) parked=$(jq -c '.parked' .ralph/state.json 2>/dev/null)"
+    tail -n 3 .ralph/ralph.log 2>/dev/null
+    break
+  fi
+  cur=$(wc -l < .ralph/current.log 2>/dev/null || echo 0)
+  if [ "$cur" -eq "$prev" ]; then
+    flat=$((flat+1))
+    if [ "$flat" -eq 2 ]; then
+      echo "STALL? transcript flat at ${cur} lines for ~4m | last: $(tail -c 220 .ralph/current.log 2>/dev/null | tr '\n' ' ')"
+    elif [ "$flat" -eq 8 ]; then
+      echo "STALL CONFIRMED flat at ${cur} lines for ~16m — hung, burning the timeout for nothing"
+    fi
+  else
+    if [ "$flat" -ge 2 ]; then echo "recovered — transcript moving again at ${cur} lines"; fi
+    flat=0
+  fi
+  prev=$cur
+  sleep 120
+done
+```
+
+Keep the watch alive for the whole run: `persistent`, not a timeout. Monitor's
+maximum `timeout_ms` is 3600000 — the same hour as `RALPH_RUN_TIMEOUT`'s default
+— so a timed watch expires at the very moment ralph's own ceiling fires, and
+covers no second issue after it.
+
+Relay `STALL?`, `STALL CONFIRMED`, recovery and `ENDED` as they arrive, and keep
+the turn active until `ENDED`.
 
 ## Supervising
 
@@ -118,49 +165,9 @@ ralph --status | grep heartbeat     # climbing = working, flat = hung
 
 Equivalently, watch whether `.ralph/current.log`'s mtime advances.
 
-Do not leave this to memory. Arm one monitor when you start the run and let it
-tell you — edge-triggered, so a healthy run is silent and only a stall or the
-end of the run produces an event:
-
-```bash
-cd /path/to/repo
-prev=-1; flat=0
-while true; do
-  st=$(jq -r '.status // "unknown"' .ralph/state.json 2>/dev/null || echo unknown)
-  if [ "$st" != "running" ]; then
-    echo "ralph ENDED status=$st done=$(jq -c '.done' .ralph/state.json 2>/dev/null) parked=$(jq -c '.parked' .ralph/state.json 2>/dev/null)"
-    tail -n 3 .ralph/ralph.log 2>/dev/null
-    break
-  fi
-  cur=$(wc -l < .ralph/current.log 2>/dev/null || echo 0)
-  if [ "$cur" -eq "$prev" ]; then
-    flat=$((flat+1))
-    if [ "$flat" -eq 2 ]; then
-      echo "STALL? transcript flat at ${cur} lines for ~4m | last: $(tail -c 220 .ralph/current.log 2>/dev/null | tr '\n' ' ')"
-    elif [ "$flat" -eq 8 ]; then
-      echo "STALL CONFIRMED flat at ${cur} lines for ~16m — hung, burning the timeout for nothing"
-    fi
-  else
-    if [ "$flat" -ge 2 ]; then echo "recovered — transcript moving again at ${cur} lines"; fi
-    flat=0
-  fi
-  prev=$cur
-  sleep 120
-done
-```
-
-In Codex, run this monitor in its own managed shell session. Let the initial
-shell call yield and retain the returned session handle, then wait on that
-session with empty-input polls and long yields. Keep the current turn active,
-or the current Goal active when running in Goal mode, until the monitor reports
-`ENDED`. Relay `STALL?`, `STALL CONFIRMED`, recovery, and terminal output as it
-arrives. Do not detach it with `&`; Codex needs the session handle to wait for
-output and stop it cleanly.
-
-On another agent, use its equivalent managed background-session or recurring
-monitor facility. The requirement is observable behavior: the monitor must
-survive the initial tool timeout, report terminal states, and surface stall
-events without manual polling.
+Do not leave this to memory. The watch armed in "Starting it" is edge-triggered
+for exactly this reason: a healthy run is silent, and only a stall or the end of
+the run produces an event.
 
 Two flat checks (~4 minutes) is a question, not a verdict — a long file read or
 a slow provider can go quiet that long. Eight (~16 minutes) is the answer. When
