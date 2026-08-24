@@ -99,6 +99,39 @@ covers no second issue after it.
 Relay `STALL?`, `STALL CONFIRMED`, recovery and `ENDED` as they arrive, and keep
 the turn active until `ENDED`.
 
+### Under Herdr, give the loop its own pane
+
+Herdr reports the agent **occupying a pane**. A ralph run started as a detached
+background call occupies none — it is a child of your own process, writing to a
+file that never reaches a terminal — so the pane keeps reporting *you*, and
+flips to `idle` the moment you hand the turn back while the loop is still
+running. The user watching the sidebar sees an idle agent and a stalled-looking
+workspace.
+
+When `${HERDR_ENV:-}` is `1`, run the loop in a sibling pane instead:
+
+```bash
+herdr pane split --current --direction right --cwd "$PWD" --no-focus
+herdr pane run <returned-pane-id> "ralph --once"
+```
+
+ralph's output then renders where the user can watch it, and because ralph
+launches opencode *inside* that pane, Herdr detects opencode and reports the
+loop's own `working` / `idle` lifecycle.
+
+Arm the stall watch anyway. A hung opencode still looks `working` to Herdr, and
+`unknown` never proves completion — the `lines=` counter is what separates a
+hang from slow work. The pane is visibility, not detection.
+
+To watch a run already in flight, split a pane and put a reader in it rather
+than restarting anything:
+
+```bash
+herdr pane run <returned-pane-id> "watch -n 5 -t 'ralph --status 40 | head -60'"
+```
+
+`herdr pane read` returns plain text, not the JSON the control commands return.
+
 ## Supervising
 
 One command, readable whether or not the loop is running, from any session:
