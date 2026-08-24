@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 2. Check whether the requested changes landed on the current branch. Inspect the branch diff and relevant history, then map each acceptance criterion to concrete code or tests. Identify missing, partial, or unrelated changes.
 
-3. Determine which frontend features are affected by the change, if any. Inspect `../frontend` and trace the changed backend contract through its consumers. For every affected interactive feature, use the `/webapp-testing` skill to exercise the relevant user flow in a browser. Record the route, setup/data used, actions, and observed result.
+3. Determine which frontend features are affected by the change, if any. Inspect `../frontend` and trace the changed backend contract through its consumers. For every affected interactive feature, use the `playwright-cli` skill to exercise the relevant user flow in a browser — start the frontend dev server yourself first, `playwright-cli` does not manage it. Record the route, setup/data used, actions, and observed result.
 
 4. Review every category for implementation bugs: error handling, validation, authorization, persistence, backwards compatibility, race conditions, and test coverage. Run focused tests and other relevant checks available in the repository. Report concrete findings with severity, evidence, and file/line references.
 
@@ -31,6 +31,3 @@ disable-model-invocation: true
    - tests and checks run, including failures or environmental limitations.
 
 Complete the workflow only after every acceptance criterion has been checked and every affected frontend feature has either been browser-tested or clearly documented as untestable with the reason.
-
-
-
