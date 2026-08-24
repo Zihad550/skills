@@ -132,6 +132,64 @@ herdr pane run <returned-pane-id> "watch -n 5 -t 'ralph --status 40 | head -60'"
 
 `herdr pane read` returns plain text, not the JSON the control commands return.
 
+## Rotate the tab between tickets
+
+ralph already gives the *implementer* a clean slate: it runs `opencode run` per
+attempt, so every ticket is a fresh process. The **supervisor** — you — is what
+accumulates. By the third ticket your context is mostly archaeology from the
+first two, and the ticket in front of you competes with it for attention.
+
+So under Herdr, each ticket gets its own tab, and you hand off rather than
+carry. Rotate **between** issues, never with a run in flight: closing a tab
+kills its panes, and ralph and its watch pane live in one.
+
+Derive your own kind rather than assuming it — the successor must be the harness
+actually in use:
+
+```bash
+herdr agent list | jq -r --arg p "$HERDR_PANE_ID" '.result.agents[] | select(.pane_id==$p) | .agent'
+```
+
+Then create the tab, start the successor in its root pane, and brief it:
+
+```bash
+herdr tab create --cwd "$PWD" --label "<repo> #<next-issue>" --no-focus
+herdr agent start <name> --kind <derived-kind> --pane <returned-root-pane> --timeout 120000
+herdr agent prompt <name> "<handoff brief>" --wait
+```
+
+`agent start` defaults to a 30s startup timeout; a cold harness often needs more.
+
+**The successor closes the predecessor's tab, as its first action.** Closing your
+own tab while you are the one holding the handoff kills you mid-sentence,
+possibly before the successor is even up — and then the context is gone with no
+one to rebuild it. Put the predecessor's tab ID in the brief and make closing it
+instruction one:
+
+```bash
+herdr tab close <predecessor-tab-id>
+```
+
+### What the brief carries
+
+The successor starts cold. Everything it would otherwise rediscover by reading
+transcripts or re-running failed commands belongs in the brief:
+
+- **The ticket** it is to implement, and the explicit scope limit — which issue
+  it must *not* start without being asked.
+- **What just shipped**: issue number, commit SHA, whether it was pushed, and
+  how it was verified. Enough that it never re-does finished work.
+- **Repo state**: branch, whether the tree is clean, unpushed commits.
+- **The environment's hard-won details** — where credentials live, which ports
+  are taken, the build step that is easy to miss, the test baseline. These are
+  the hours the successor would otherwise repay.
+- **Data it cannot trust**: known-bad fixtures, and any junk this session
+  created. Say what you left behind rather than letting the next agent find it.
+- **The predecessor's tab ID**, to close.
+
+Write the brief as instructions to a capable stranger, not as a summary of your
+session. It has your conclusions, none of your reasoning, and no way to ask.
+
 ## Supervising
 
 One command, readable whether or not the loop is running, from any session:
