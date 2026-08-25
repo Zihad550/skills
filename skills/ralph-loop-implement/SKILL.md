@@ -2,7 +2,7 @@
 name: ralph-loop-implement
 displayName: Run and supervise the ralph issue-queue loop
 description: Run and supervise `ralph` — the unattended loop that drains a repo's ready-for-agent GitHub issues one at a time with opencode, committing and closing each. Use when asked to work through the issue queue unattended, to start/stop/check on ralph, to read .ralph/state.json or .ralph/ralph.log, or to explain why the loop parked or stalled on an issue.
-version: 1.0.0
+version: 1.1.0
 tags: [github, issues, automation, opencode, unattended]
 ---
 
@@ -40,9 +40,17 @@ ralph --once       # one issue, then stop — always prefer this for a first run
 ralph              # drain the queue
 ```
 
-Start it as a long-running background call so you stay responsive, and tell the
-user which mode you used. A run can take many minutes; wait on it with long
-yields rather than polling in a tight loop.
+**Decide where it runs before you launch it.** These are two exclusive ways to
+start the same loop, and doing both starts ralph twice — a background call and
+a pane running their own opencode against the same queue:
+
+- **`${HERDR_ENV:-}` is `1`** → start it in its own pane. Skip the background
+  call entirely; see "Under Herdr, give the loop its own pane" for the two
+  commands and the reasoning.
+- **otherwise** → start it as a long-running background call, and wait on it
+  with long yields rather than polling in a tight loop.
+
+Either way, tell the user which mode you used. A run can take many minutes.
 
 **Then arm the stall watch, in the same turn.** The ralph call returns when
 opencode exits — and a hang is exactly the case where it never exits, so that
@@ -56,10 +64,20 @@ it exits is **parked** — it cannot warn you about a hang, because a hang is th
 case where it never exits. Arm the watch with your harness's push-based
 notification facility, the one that emits per event rather than per completion:
 
-| Harness | Armed | Parked — reports only on exit |
+| Harness | Armed | Parked or unsupported |
 |---|---|---|
 | Claude Code | `Monitor(command: …, persistent: true)` | `Bash(run_in_background: true)` |
 | Codex | its own managed shell session, held by the session handle | a detached `&` |
+| OpenCode | Herdr or another external terminal/process supervisor whose events stay visible to the operator | `bash` with `&` or `nohup`; experimental background subagents track child agent sessions, not Ralph's process |
+
+OpenCode has no native persistent monitor for an arbitrary process. Its
+experimental `task(background: true)` sends a completion notification for an
+OpenCode child session; it does not expose persistent shell-job progress or
+get/wait/cancel controls. When OpenCode is the supervising harness, use the
+Herdr branch below or an equivalent external supervisor. When none is
+available, say that the stall watch cannot be armed natively and ask the user
+where the long-running watch should live. Never describe a detached watcher as
+armed.
 
 Arm it with this script — it watches the transcript's line count, for the
 reasons in "Telling a hang from slow work":
@@ -108,12 +126,18 @@ flips to `idle` the moment you hand the turn back while the loop is still
 running. The user watching the sidebar sees an idle agent and a stalled-looking
 workspace.
 
-When `${HERDR_ENV:-}` is `1`, run the loop in a sibling pane instead:
+When `${HERDR_ENV:-}` is `1`, run the loop in a sibling pane **instead of** the
+background call in "Starting it" — not in addition to it:
 
 ```bash
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
 herdr pane run <returned-pane-id> "ralph --once"
 ```
+
+Keep a resource ledger for this run. Record the returned Ralph pane ID, every
+watcher pane ID, and every tab/root-pane ID created during ticket rotation.
+Keep the caller's original workspace, tab, and pane IDs separate; they are not
+cleanup targets.
 
 ralph's output then renders where the user can watch it, and because ralph
 launches opencode *inside* that pane, Herdr detects opencode and reports the
@@ -132,6 +156,30 @@ herdr pane run <returned-pane-id> "watch -n 5 -t 'ralph --status 40 | head -60'"
 
 `herdr pane read` returns plain text, not the JSON the control commands return.
 
+**The pane replaces the background call; the watch is still separate.** In a
+pane the loop is no longer a child of your process, so you get no completion
+notification at all — the armed watch is then your *only* signal, not a
+redundant second one.
+
+### Clean up Herdr resources after the run
+
+When the watch reports `ENDED`, clean the resource ledger before handing the
+turn back:
+
+1. Close each watcher pane you created: `herdr pane close <watch-pane-id>`.
+2. Confirm the Ralph process has exited, then close its pane:
+   `herdr pane close <ralph-pane-id>`.
+3. Close each run-created tab only after its successor is settled or has exited:
+   `herdr tab close <created-tab-id>`. Closing a tab also closes its remaining
+   child panes.
+4. Re-list the caller's workspace and verify that no recorded run-owned pane or
+   tab remains.
+
+Use the recorded opaque IDs, never a workspace-wide close or a guessed sidebar
+position. Leave pre-existing panes alone, and keep a successor tab open while
+it is still doing work or receiving the handoff. Cleanup is complete when every
+recorded resource is closed except an explicitly active successor.
+
 ## Rotate the tab between tickets
 
 ralph already gives the *implementer* a clean slate: it runs `opencode run` per
@@ -139,9 +187,9 @@ attempt, so every ticket is a fresh process. The **supervisor** — you — is w
 accumulates. By the third ticket your context is mostly archaeology from the
 first two, and the ticket in front of you competes with it for attention.
 
-So under Herdr, each ticket gets its own tab, and you hand off rather than
-carry. Rotate **between** issues, never with a run in flight: closing a tab
-kills its panes, and ralph and its watch pane live in one.
+So under Herdr, each ticket gets its own tab in the caller's workspace, and you
+hand off rather than carry. Rotate **between** issues, never with a run in
+flight: closing a tab kills its panes, and ralph and its watch pane live in one.
 
 Derive your own kind rather than assuming it — the successor must be the harness
 actually in use:
@@ -150,13 +198,18 @@ actually in use:
 herdr agent list | jq -r --arg p "$HERDR_PANE_ID" '.result.agents[] | select(.pane_id==$p) | .agent'
 ```
 
-Then create the tab, start the successor in its root pane, and brief it:
+Then create the tab in the caller's workspace, start the successor in its root
+pane, and brief it:
 
 ```bash
-herdr tab create --cwd "$PWD" --label "<repo> #<next-issue>" --no-focus
+herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "<repo> #<next-issue>" --no-focus
 herdr agent start <name> --kind <derived-kind> --pane <returned-root-pane> --timeout 120000
 herdr agent prompt <name> "<handoff brief>" --wait
 ```
+
+Keep both targets explicit: `--workspace` selects the Herdr project workspace;
+`--cwd` selects its checkout. Omitting `--workspace` lets Herdr fall back to
+the focused workspace, which may belong to another project or client.
 
 `agent start` defaults to a 30s startup timeout; a cold harness often needs more.
 
