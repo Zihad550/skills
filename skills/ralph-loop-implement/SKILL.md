@@ -1,86 +1,60 @@
 ---
 name: ralph-loop-implement
-displayName: Run and supervise the ralph issue-queue loop
-description: Run and supervise `ralph` — the unattended loop that drains a repo's ready-for-agent GitHub issues one at a time with opencode, committing and closing each. Use when asked to work through the issue queue unattended, to start/stop/check on ralph, to read .ralph/state.json or .ralph/ralph.log, or to explain why the loop parked or stalled on an issue.
-version: 1.1.0
+displayName: Drain a GitHub issue queue with Ralph
+description: Run and supervise the Ralph GitHub issue-queue specialization, which sends ready and unblocked issues to OpenCode's implement-issue command, verifies closure, and parks failed issues. Use for starting, stopping, checking, or diagnosing the repository's ralph issue loop. For arbitrary user-defined tasks, use ralph-loop.
+version: 2.0.0
 tags: [github, issues, automation, opencode, unattended]
 ---
 
-# Ralph loop
+# Ralph issue loop
 
-`ralph` is a bash loop over a repo's issue queue. One pass = pick the
-lowest-numbered open issue that carries the agent-ready label and has **zero open
-blockers**, hand it to `opencode run` with the `/implement-issue` command, then check
-whether the issue actually closed. Repeat until the frontier is empty.
+Read and apply [`ralph-loop`](../ralph-loop/SKILL.md) first. It owns task-loop
+supervision, process placement, transcript stall detection, bounded retries,
+Herdr cleanup, and reporting. This skill defines only the GitHub issue-queue
+specialization.
 
-It writes changes and closes issues on the user's behalf, so it is **never
-started without the user asking for it**.
+The repository's `ralph` command selects the lowest-numbered open issue with the
+agent-ready label and zero open blockers. It passes that issue to a fresh
+`opencode run` process with `/implement-issue`, then checks whether the issue
+closed. The existing runner is the loop. Start it directly rather than wrapping
+it in another generic loop.
 
-## Before starting a loop
+Ralph can change code, commit, and close issues. Start it only when the user asks
+to work the queue.
 
-```bash
-ralph --check      # config + the exact frontier it will work through
-```
-
-Read the output back to the user. Watch for:
-
-- **An empty frontier** — nothing is labelled agent-ready and unblocked. Do not
-  "fix" this by relabelling issues on your own.
-- **Issues that look already done.** `--check` lists titles; if git history says
-  the work shipped, tell the user — a stale open issue burns a full run.
-- **A dirty working tree.** ralph warns, but the agent's commits will sweep up
-  whatever it stages. Offer to commit or stash first.
-- **No `.ralph.env`** in a repo whose checks are unusual — see
-  `ralph.env.example` for the per-repo knobs.
-
-## Starting it
+## Preflight the queue
 
 ```bash
-ralph --once       # one issue, then stop — always prefer this for a first run
-ralph              # drain the queue
+ralph --check
 ```
 
-**Decide where it runs before you launch it.** These are two exclusive ways to
-start the same loop, and doing both starts ralph twice — a background call and
-a pane running their own opencode against the same queue:
+Read the exact frontier back to the user. Stop before launch when it is empty.
+Do not relabel or reprioritize issues to fill it.
 
-- **`${HERDR_ENV:-}` is `1`** → start it in its own pane. Skip the background
-  call entirely; see "Under Herdr, give the loop its own pane" for the two
-  commands and the reasoning.
-- **otherwise** → start it as a long-running background call, and wait on it
-  with long yields rather than polling in a tight loop.
+Check these queue-specific risks:
 
-Either way, tell the user which mode you used. A run can take many minutes.
+- Compare suspicious issue titles with git history. A stale open issue consumes
+  an attempt even when its work already shipped.
+- Flag a dirty working tree. An implementer commit may include unrelated staged
+  work, so offer to commit or stash it first.
+- Check `.ralph.env` when the repository needs nonstandard verification. The
+  available settings live in `ralph.env.example`.
 
-**Then arm the stall watch, in the same turn.** The ralph call returns when
-opencode exits — and a hang is exactly the case where it never exits, so that
-return never comes and the run donates the rest of `RALPH_RUN_TIMEOUT` to
-nothing. Only a second watch can tell you.
+Preflight is complete when the user has seen the frontier and any dirty-tree or
+stale-issue risk.
 
-**Armed** is a binary state, and it is this step's completion criterion: a watch
-is armed when its events reach you *while ralph is still running*, and it
-outlives `RALPH_RUN_TIMEOUT` (3600s by default). A call that reports only once
-it exits is **parked** — it cannot warn you about a hang, because a hang is the
-case where it never exits. Arm the watch with your harness's push-based
-notification facility, the one that emits per event rather than per completion:
+## Start Ralph
 
-| Harness | Armed | Parked or unsupported |
-|---|---|---|
-| Claude Code | `Monitor(command: …, persistent: true)` | `Bash(run_in_background: true)` |
-| Codex | its own managed shell session, held by the session handle | a detached `&` |
-| OpenCode | Herdr or another external terminal/process supervisor whose events stay visible to the operator | `bash` with `&` or `nohup`; experimental background subagents track child agent sessions, not Ralph's process |
+```bash
+ralph --once       # one issue, preferred for the first run
+ralph              # drain the frontier
+```
 
-OpenCode has no native persistent monitor for an arbitrary process. Its
-experimental `task(background: true)` sends a completion notification for an
-OpenCode child session; it does not expose persistent shell-job progress or
-get/wait/cancel controls. When OpenCode is the supervising harness, use the
-Herdr branch below or an equivalent external supervisor. When none is
-available, say that the stall watch cannot be armed natively and ask the user
-where the long-running watch should live. Never describe a detached watcher as
-armed.
+Use the execution-mode rules from `ralph-loop`. Under Herdr, the loop command
+belongs in its own pane. In other managed harnesses, run it as the long-running
+call. Start exactly one copy per checkout.
 
-Arm it with this script — it watches the transcript's line count, for the
-reasons in "Telling a hang from slow work":
+Arm the base skill's stall watch with these Ralph paths and completion check:
 
 ```bash
 cd /path/to/repo
@@ -88,7 +62,7 @@ prev=-1; flat=0
 while true; do
   st=$(jq -r '.status // "unknown"' .ralph/state.json 2>/dev/null || echo unknown)
   if [ "$st" != "running" ]; then
-    echo "ralph ENDED status=$st done=$(jq -c '.done' .ralph/state.json 2>/dev/null) parked=$(jq -c '.parked' .ralph/state.json 2>/dev/null)"
+    echo "ENDED status=$st done=$(jq -c '.done' .ralph/state.json 2>/dev/null) parked=$(jq -c '.parked' .ralph/state.json 2>/dev/null)"
     tail -n 3 .ralph/ralph.log 2>/dev/null
     break
   fi
@@ -98,10 +72,10 @@ while true; do
     if [ "$flat" -eq 2 ]; then
       echo "STALL? transcript flat at ${cur} lines for ~4m | last: $(tail -c 220 .ralph/current.log 2>/dev/null | tr '\n' ' ')"
     elif [ "$flat" -eq 8 ]; then
-      echo "STALL CONFIRMED flat at ${cur} lines for ~16m — hung, burning the timeout for nothing"
+      echo "STALL CONFIRMED flat at ${cur} lines for ~16m"
     fi
   else
-    if [ "$flat" -ge 2 ]; then echo "recovered — transcript moving again at ${cur} lines"; fi
+    if [ "$flat" -ge 2 ]; then echo "recovered at ${cur} lines"; fi
     flat=0
   fi
   prev=$cur
@@ -109,266 +83,66 @@ while true; do
 done
 ```
 
-Keep the watch alive for the whole run: `persistent`, not a timeout. Monitor's
-maximum `timeout_ms` is 3600000 — the same hour as `RALPH_RUN_TIMEOUT`'s default
-— so a timed watch expires at the very moment ralph's own ceiling fires, and
-covers no second issue after it.
+Keep the watch alive across every issue in a draining run. Ralph's default
+`RALPH_RUN_TIMEOUT` is 3600 seconds, so a one-hour watch expires too early for a
+second issue.
 
-Relay `STALL?`, `STALL CONFIRMED`, recovery and `ENDED` as they arrive, and keep
-the turn active until `ENDED`.
-
-### Under Herdr, give the loop its own pane
-
-Herdr reports the agent **occupying a pane**. A ralph run started as a detached
-background call occupies none — it is a child of your own process, writing to a
-file that never reaches a terminal — so the pane keeps reporting *you*, and
-flips to `idle` the moment you hand the turn back while the loop is still
-running. The user watching the sidebar sees an idle agent and a stalled-looking
-workspace.
-
-When `${HERDR_ENV:-}` is `1`, run the loop in a sibling pane **instead of** the
-background call in "Starting it" — not in addition to it:
+## Read Ralph state
 
 ```bash
-herdr pane split --current --direction right --cwd "$PWD" --no-focus
-herdr pane run <returned-pane-id> "ralph --once"
-```
-
-Keep a resource ledger for this run. Record the returned Ralph pane ID, every
-watcher pane ID, and every tab/root-pane ID created during ticket rotation.
-Keep the caller's original workspace, tab, and pane IDs separate; they are not
-cleanup targets.
-
-ralph's output then renders where the user can watch it, and because ralph
-launches opencode *inside* that pane, Herdr detects opencode and reports the
-loop's own `working` / `idle` lifecycle.
-
-Arm the stall watch anyway. A hung opencode still looks `working` to Herdr, and
-`unknown` never proves completion — the `lines=` counter is what separates a
-hang from slow work. The pane is visibility, not detection.
-
-To watch a run already in flight, split a pane and put a reader in it rather
-than restarting anything:
-
-```bash
-herdr pane run <returned-pane-id> "watch -n 5 -t 'ralph --status 40 | head -60'"
-```
-
-`herdr pane read` returns plain text, not the JSON the control commands return.
-
-**The pane replaces the background call; the watch is still separate.** In a
-pane the loop is no longer a child of your process, so you get no completion
-notification at all — the armed watch is then your *only* signal, not a
-redundant second one.
-
-### Clean up Herdr resources after the run
-
-When the watch reports `ENDED`, clean the resource ledger before handing the
-turn back:
-
-1. Close each watcher pane you created: `herdr pane close <watch-pane-id>`.
-2. Confirm the Ralph process has exited, then close its pane:
-   `herdr pane close <ralph-pane-id>`.
-3. Close each run-created tab only after its successor is settled or has exited:
-   `herdr tab close <created-tab-id>`. Closing a tab also closes its remaining
-   child panes.
-4. Re-list the caller's workspace and verify that no recorded run-owned pane or
-   tab remains.
-
-Use the recorded opaque IDs, never a workspace-wide close or a guessed sidebar
-position. Leave pre-existing panes alone, and keep a successor tab open while
-it is still doing work or receiving the handoff. Cleanup is complete when every
-recorded resource is closed except an explicitly active successor.
-
-## Rotate the tab between tickets
-
-ralph already gives the *implementer* a clean slate: it runs `opencode run` per
-attempt, so every ticket is a fresh process. The **supervisor** — you — is what
-accumulates. By the third ticket your context is mostly archaeology from the
-first two, and the ticket in front of you competes with it for attention.
-
-So under Herdr, each ticket gets its own tab in the caller's workspace, and you
-hand off rather than carry. Rotate **between** issues, never with a run in
-flight: closing a tab kills its panes, and ralph and its watch pane live in one.
-
-Derive your own kind rather than assuming it — the successor must be the harness
-actually in use:
-
-```bash
-herdr agent list | jq -r --arg p "$HERDR_PANE_ID" '.result.agents[] | select(.pane_id==$p) | .agent'
-```
-
-Then create the tab in the caller's workspace, start the successor in its root
-pane, and brief it:
-
-```bash
-herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label "<repo> #<next-issue>" --no-focus
-herdr agent start <name> --kind <derived-kind> --pane <returned-root-pane> --timeout 120000
-herdr agent prompt <name> "<handoff brief>" --wait
-```
-
-Keep both targets explicit: `--workspace` selects the Herdr project workspace;
-`--cwd` selects its checkout. Omitting `--workspace` lets Herdr fall back to
-the focused workspace, which may belong to another project or client.
-
-`agent start` defaults to a 30s startup timeout; a cold harness often needs more.
-
-**The successor closes the predecessor's tab, as its first action.** Closing your
-own tab while you are the one holding the handoff kills you mid-sentence,
-possibly before the successor is even up — and then the context is gone with no
-one to rebuild it. Put the predecessor's tab ID in the brief and make closing it
-instruction one:
-
-```bash
-herdr tab close <predecessor-tab-id>
-```
-
-### What the brief carries
-
-The successor starts cold. Everything it would otherwise rediscover by reading
-transcripts or re-running failed commands belongs in the brief:
-
-- **The ticket** it is to implement, and the explicit scope limit — which issue
-  it must *not* start without being asked.
-- **What just shipped**: issue number, commit SHA, whether it was pushed, and
-  how it was verified. Enough that it never re-does finished work.
-- **Repo state**: branch, whether the tree is clean, unpushed commits.
-- **The environment's hard-won details** — where credentials live, which ports
-  are taken, the build step that is easy to miss, the test baseline. These are
-  the hours the successor would otherwise repay.
-- **Data it cannot trust**: known-bad fixtures, and any junk this session
-  created. Say what you left behind rather than letting the next agent find it.
-- **The predecessor's tab ID**, to close.
-
-Write the brief as instructions to a capable stranger, not as a summary of your
-session. It has your conclusions, none of your reasoning, and no way to ask.
-
-## Supervising
-
-One command, readable whether or not the loop is running, from any session:
-
-```bash
-ralph --status         # state + timeline + heartbeat + last 40 transcript lines
+ralph --status         # state, timeline, heartbeat, and 40 transcript lines
 ralph --status 100     # deeper transcript tail
 ```
 
-Underneath, in the repo's `.ralph/`:
-
-| File | Use it for |
+| Path | Meaning |
 |---|---|
-| `state.json` | machine-readable status, current issue + attempt, `done`, `parked`, frontier |
-| `ralph.log` | append-only timeline — grep `picked\|closed\|parked\|WARN` |
-| `heartbeat` | rewritten every 15s **only while a run is in flight**. Its timestamp tracks ralph, not opencode — read the `lines=` counter inside it, not the file's age |
-| `current.log` | symlink to the live transcript; absent when idle |
-| `logs/` | full transcript per attempt, named `issue-N-attemptK-*.log` |
+| `.ralph/state.json` | status, current issue and attempt, `done`, `parked`, frontier |
+| `.ralph/ralph.log` | append-only queue timeline |
+| `.ralph/heartbeat` | Ralph liveness plus transcript `lines=` count |
+| `.ralph/current.log` | symlink to the active attempt transcript |
+| `.ralph/logs/` | complete transcript for every attempt |
 
-To get pushed events instead of polling, watch the timeline:
+Interpret queue outcomes as follows:
 
-```bash
-tail -f .ralph/ralph.log | grep --line-buffered -E "picked|closed|parked|WARN|done —"
-```
+- A growing `lines=` count means OpenCode is progressing.
+- `parked: #N` means the issue remained open after
+  `RALPH_MAX_ATTEMPTS`. Read its attempt logs and issue comments.
+- A growing `done` list with a dirty tree means an issue closed while changes
+  remain uncommitted. Flag the partial state.
+- `rc=124` plus a transcript that was silent for most of the timeout means a
+  hang. Output written until the timeout means the attempt was genuinely slow.
+  Recommend a larger timeout only for the second case.
 
-Reading a status:
+## Queue concurrency
 
-- `status: running` + `lines=` still climbing → healthy, leave it alone.
-- `status: running` + `lines=` flat across two looks minutes apart → **hung**.
-  See "Telling a hang from slow work" below.
-- `parked: #N` → the issue survived every attempt without closing. Read
-  `logs/issue-N-attempt*.log` and the issue's comments to find out why. Parking
-  is the loop protecting itself from an infinite retry, not a bug.
-- `done` grows but the tree is dirty → the agent closed an issue while leaving
-  uncommitted work. Flag it; that usually means a partial implementation.
+Ralph enforces one loop per checkout with `.ralph/lock.d`. If it reports
+`already running`, inspect `ralph --status`; the runner clears dead-process locks
+itself.
 
-## Telling a hang from slow work
-
-`RALPH_RUN_TIMEOUT` is a ceiling, not a wait. `bin/ralph` runs opencode as a
-blocking foreground call, so **whenever opencode exits, ralph returns within
-seconds** — a crash, a dropped connection, a provider `Service Unavailable`, a
-clean finish. Only one case burns the full timeout: opencode still alive but
-producing nothing, which is what a model that stops responding mid-stream looks
-like. The connection stays open, opencode blocks on it, and `timeout` fires at
-`RALPH_RUN_TIMEOUT` with `rc=124`.
-
-**The heartbeat's freshness cannot tell you which is happening.** It is written
-by a subshell on ralph's own 15s timer, independent of opencode, so it stays
-fresh right through an hour-long hang — it only goes stale if ralph itself dies.
-What it carries is the signal:
-
-```
-alive 2026-08-23T15:11:56+06:00  lines=1847  last=→ Read src/components/FaresPage.tsx
-```
-
-`lines=` is the transcript's line count. Compare it across two looks a few
-minutes apart:
-
-```bash
-ralph --status | grep heartbeat     # note lines=
-# …several minutes later…
-ralph --status | grep heartbeat     # climbing = working, flat = hung
-```
-
-Equivalently, watch whether `.ralph/current.log`'s mtime advances.
-
-Do not leave this to memory. The watch armed in "Starting it" is edge-triggered
-for exactly this reason: a healthy run is silent, and only a stall or the end of
-the run produces an event.
-
-Two flat checks (~4 minutes) is a question, not a verdict — a long file read or
-a slow provider can go quiet that long. Eight (~16 minutes) is the answer. When
-it fires, surface it to the user with the transcript tail and offer to kill the
-attempt: a hang donates the rest of the hour to nothing, and killing it early
-frees the attempt. A climbing counter means leave it alone, however slow it
-looks.
-
-This also decides whether raising `RALPH_RUN_TIMEOUT` would have helped. Compare
-the transcript's last write against the kill time:
-
-```bash
-ls -la --time-style=+%H:%M:%S .ralph/logs/ | tail
-```
-
-Silent for most of the run → it hung, and more clock buys nothing. Writing until
-seconds before the kill → genuinely slow, and a larger timeout is the fix. Do not
-recommend raising the timeout without checking which one it was.
-
-## Running more than one
-
-**One ralph per checkout**, enforced by a lock in `.ralph/lock.d`. If starting one
-reports `already running (pid N)`, do not delete the lock to force it — check
-`ralph --status` first; a second loop in one working tree interleaves two agents'
-commits on one branch. A lock held by a dead process is cleared automatically.
-
-Different repos need no coordination at all.
-
-To work one repo in parallel, give each loop its own checkout and turn on claiming:
+Separate checkouts may run independently. For parallel workers on one
+repository, use one worktree per worker and enable claiming:
 
 ```bash
 git worktree add ../repo-b -b ralph-b
-RALPH_CLAIM=1 ralph &            # in each checkout
+RALPH_CLAIM=1 ralph
 ```
 
-`RALPH_CLAIM=1` assigns each issue to `@me` before work starts and drops assigned
-issues from the frontier, so two loops never take the same ticket. A failed attempt
-releases the issue; a **parked** issue keeps its assignee on purpose, so no other
-worker grinds through the same broken ticket. Never suggest claiming for a single
-loop — it only adds assignee churn.
+Claiming assigns an issue before work and drops assigned issues from other
+workers' frontiers. A failed attempt releases the issue. A parked issue keeps
+its assignee. Single loops do not need claiming.
 
-Watch for the shared-resource collision that survives all of this: two
-browser-verifying agents reaching for the same dev-server port.
+Coordinate shared resources such as development-server ports across worktrees.
 
-## Stopping
+## Stop and boundaries
 
-`Ctrl-C`, or kill the pid in `state.json`. The loop traps the signal, writes
-`status: interrupted`, and prints its summary. It never abandons state.
+Use `Ctrl-C` or signal the PID recorded in `state.json`. Ralph records
+`status: interrupted` and retains its state.
 
-## What ralph deliberately does not do
+The issue specialization has these fixed boundaries:
 
-- **No retries beyond `RALPH_MAX_ATTEMPTS`** (default 2) — the issue is parked
-  and the loop moves on.
-- **No pushing, no PRs, no branch creation.** It commits to the current branch.
-  If the user wants isolation, put them on a branch before starting.
-- **No relabelling or reprioritising.** The queue is the user's to shape; ralph
-  only reads it.
-- **GitHub only.** The blocked check reads GitHub's native issue dependencies
-  (`issue_dependencies_summary.blocked_by`). Another tracker needs a new
-  frontier query, not a config flag.
+- It uses at most `RALPH_MAX_ATTEMPTS`, then parks the issue and continues.
+- It commits on the current branch. It does not push, create a PR, or create a
+  branch.
+- It reads labels, priority, and GitHub's native blocker relationships. It does
+  not change queue ordering.
+- It supports GitHub. Another tracker needs a different frontier adapter.
