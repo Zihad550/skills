@@ -1,0 +1,49 @@
+---
+name: create-skill
+description: Author a new agent skill in the user's own skills repo and roll it out everywhere. Use when the user asks to create, write, or add a skill, or says /create-skill.
+---
+
+# Create a skill
+
+Ship a new skill end to end: authored in `~/dev/src/github.com/Zihad550/skills`, pushed, registered in the dotfiles installer, and installed globally for every agent. A skill that exists only on disk is not shipped — every step below runs.
+
+Use the name the user gave. Absent one, propose a kebab-case name from the skill's job and confirm it before step 1.
+
+## 1. Scaffold
+
+```bash
+cd ~/dev/src/github.com/Zihad550/skills/skills && skills init <name>
+```
+
+Done when `skills/<name>/SKILL.md` exists with the CLI's placeholder frontmatter.
+
+## 2. Write it
+
+Invoke the `writing-for-agents` skill and write `SKILL.md` under its rules — description as context pointer, steps with checkable completion criteria, reference disclosed behind pointers rather than piled inline.
+
+Done when every placeholder line the CLI wrote is gone and the frontmatter `name` matches the directory.
+
+## 3. Commit and push the skill
+
+```bash
+cd ~/dev/src/github.com/Zihad550/skills && git add skills/<name> && git commit && git push
+```
+
+Conventional Commits, matching the log's existing style (`feat: add <thing> skill`). Push before step 5 — `skills add` installs from GitHub, so an unpushed skill installs as nothing.
+
+## 4. Register it in the installer
+
+`~/dotfiles/setup/common/setup-skills` is a separate repo. Add `<name>` to the `--skill` list on the `skills add Zihad550/skills` invocation, keeping that list alphabetical, then commit and push the dotfiles repo.
+
+Done when the skill name appears in that list and `git status` in `~/dotfiles` is clean.
+
+## 5. Install globally
+
+Read the `AGENTS` array from `~/dotfiles/setup/common/setup-skills` — it is the source of truth for install targets — and run from `~`:
+
+```bash
+cd ~ && skills add Zihad550/skills --skill <name> -g --agent <agents from AGENTS> -y
+skills update -g
+```
+
+Done when `skills list` shows the new skill installed for each agent in `AGENTS`.
