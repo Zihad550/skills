@@ -1,6 +1,7 @@
 ---
 name: create-skill
-description: Author a new agent skill in the user's own skills repo and roll it out everywhere. Use when the user asks to create, write, or add a skill, or says /create-skill.
+description: Author a new agent skill in the user's own skills repo and roll it out everywhere.
+disable-model-invocation: true
 ---
 
 # Create a skill
