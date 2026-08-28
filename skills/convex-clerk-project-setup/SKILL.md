@@ -1,7 +1,8 @@
 ---
 name: convex-clerk-project-setup
 displayName: Convex + Clerk project setup
-description: "Wire Clerk auth into a Convex + Vite app, and diagnose a sign-in that half-works. Use when the user signs in but stays unauthenticated, `<Authenticated>` never renders while `UserButton` does, `getUserIdentity()` returns null, a Clerk token request 404s, or the app must be reachable from another device (LAN, Tailscale, tunnel)."
+description: "Wire Clerk auth into a Convex + Vite app, and diagnose a sign-in that half-works."
+disable-model-invocation: true
 version: 1.0.0
 tags: [convex, clerk, auth, vite, tailscale]
 ---
