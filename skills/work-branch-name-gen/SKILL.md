@@ -1,10 +1,10 @@
 ---
-name: ww-worktree
-description: Draft a branch or worktree name from one or more issue numbers.
+name: work-branch-name-gen
+description: Draft a work branch name from one or more issue numbers.
 disable-model-invocation: true
 ---
 
-# WW worktree
+# Work branch name generator
 
 Turn the issue numbers passed with the invocation into one proposed branch or worktree name.
 
