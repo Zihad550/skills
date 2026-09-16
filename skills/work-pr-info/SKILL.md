@@ -3,7 +3,7 @@ name: work-pr-info
 displayName: Work PR title and description
 description: Draft a pull request title and body for a work repo, ready to paste into Forgejo.
 disable-model-invocation: true
-version: 1.0.0
+version: 1.1.0
 tags: [forgejo, pull-requests, drafting]
 ---
 
@@ -23,7 +23,7 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
 3. Draft the title: one line naming the change from the reader's side, specific enough to tell it apart from the other open PRs. Prefix `WIP: ` when step 2 landed on not ready. Done when the title names the actual change, and carries the prefix only in the not-ready case.
 
-4. Draft the body: one short paragraph on the problem, one on the solution. Write plain text, full sentences, present tense, with numbered points when a list is needed. Skip em dashes, en dashes, hyphens as punctuation, and hyphenated compounds (write "per workspace", not "workspace-scoped"). Done when a reviewer who has not read the diff can say what was wrong and what the change does about it.
+4. Draft the body: exactly two paragraphs, the first on the problem, the second on the solution, plus the reference lines from step 5. Write plain text, full sentences, present tense, with numbered points when a list is needed. Skip em dashes, en dashes, hyphens as punctuation, and hyphenated compounds (write "per workspace", not "workspace-scoped"). Everything that is neither the problem nor the solution travels to step 7 instead: caveats, known gaps, test evidence, follow-up work, and anything a product owner still has to confirm. Done when the body is two paragraphs, and a reviewer who has not read the diff can say what was wrong and what the change does about it.
 
 5. Close the body with one reference line per issue from step 1, each opening with `Refs` or `Related to`:
 
@@ -35,4 +35,9 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
 6. Print the title and the body raw, with no blockquote markers, bold, or backticks wrapped around them, so the user copies them straight into Forgejo. Done when the output pastes as is.
 
-7. Hand over the parts that live in the Forgejo UI, with the branch name and issue numbers filled in: link the PR branch to each issue from step 1, and request a new review after any push that follows an approval. Done when both are stated concretely.
+7. Hand over what sits outside the body, in your own words rather than as draft text:
+
+   - The Forgejo UI jobs, with the branch name and issue numbers filled in: link the PR branch to each issue from step 1, and request a new review after any push that follows an approval.
+   - Each item step 4 kept out of the body, named in one line, with where it would live instead, such as a review comment or a comment on the issue. Offer to write the ones the user wants.
+
+   Done when both parts are stated concretely and every item step 4 set aside appears here.
