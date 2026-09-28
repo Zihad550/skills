@@ -3,7 +3,7 @@ name: work-pr-info
 displayName: Work PR title and description
 description: Draft a pull request title and body for a work repo, ready to paste into Forgejo.
 disable-model-invocation: true
-version: 1.1.0
+version: 1.2.0
 tags: [forgejo, pull-requests, drafting]
 ---
 
@@ -25,13 +25,15 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
 4. Draft the body: exactly two paragraphs, the first on the problem, the second on the solution, plus the reference lines from step 5. Write plain text, full sentences, present tense, with numbered points when a list is needed. Skip em dashes, en dashes, hyphens as punctuation, and hyphenated compounds (write "per workspace", not "workspace-scoped"). Everything that is neither the problem nor the solution travels to step 7 instead: caveats, known gaps, test evidence, follow-up work, and anything a product owner still has to confirm. Done when the body is two paragraphs, and a reviewer who has not read the diff can say what was wrong and what the change does about it.
 
-5. Close the body with one reference line per issue from step 1, each opening with `Refs` or `Related to`:
+5. Close the body with one reference line per issue from step 1, each on its own line. An issue this PR addresses gets a lowercase `resolves:` line with a colon; an issue mentioned only for context, which this PR does not address, gets a `Related to` line instead:
 
    ```text
-   Refs #871
+   resolves: #871
+   resolves: #872
+   Related to #850
    ```
 
-   Forgejo scans a PR body for the words close, closes, closed, fix, fixes, fixed, resolve, resolves and resolved in front of an issue reference, and merging the PR then closes that issue. The team wants those issues to survive the merge, so `Refs` and `Related to` are the two openings that belong here. Done when every issue appears exactly once and every reference line opens with one of those two.
+   CI reads the `resolves:` lines to move each issue's label with the PR's state: approved sets ready to merge, request changes sets ready for dev, and merged sets ready for qa. `Related to` keeps a context issue out of that automation, so its label stays where it is. Never use `Refs`, and never put two issues on one line. When it is unclear whether the PR addresses an issue or only relates to it, ask. Done when every issue appears exactly once, every addressed issue matches `resolves: #<n>`, and every context issue matches `Related to #<n>`.
 
 6. Print the title and the body raw, with no blockquote markers, bold, or backticks wrapped around them, so the user copies them straight into Forgejo. Done when the output pastes as is.
 
