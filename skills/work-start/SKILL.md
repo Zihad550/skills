@@ -14,7 +14,7 @@ Put the session in the right worktree with the full picture of what is asked, an
 
 2. **Read it.**
    - Issue: `tea issue <n> --comments -o simple`. When the output shows the number is a pull request, switch to the PR branch of every later step.
-   - PR: `zsh -ic "tpr <n>"` for comments, inline review comments, and review bodies. Then read its state and head branch with `tea pulls ls --state all --limit 200 --fields index,state,head,title -o simple | awk '$1 == <n>'`, and read each issue its body lists under `resolves:` or `Related to`.
+   - PR: `df-tpr <n>` for comments, inline review comments, and review bodies. Then read its state and head branch with `tea pulls ls --state all --limit 200 --fields index,state,head,title -o simple | awk '$1 == <n>'`, and read each issue its body lists under `resolves:` or `Related to`.
 
    When the issue or PR has an image you cannot fetch, ask the user to paste it. Done when every ask, every unresolved review comment, and every linked issue has been read.
 

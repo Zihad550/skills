@@ -9,7 +9,7 @@ Write one message the user sends themselves. Drafting is the whole job: the work
 
 ## Steps
 
-1. **Read the thread.** Read what the message answers, in full: the PR's review comments and review bodies (`zsh -ic "tpr <pr>"`), the issue and its comments (`zsh -ic "ti <issue>"`), or the text the user pasted. When the thread has an image you cannot fetch, ask the user to paste it. Done when you can state, in one sentence each, what the other person asked or claimed and what the user wants to say back.
+1. **Read the thread.** Read what the message answers, in full: the PR's review comments and review bodies (`df-tpr <pr>`), the issue and its comments (`df-ti <issue>`), or the text the user pasted. When the thread has an image you cannot fetch, ask the user to paste it. Done when you can state, in one sentence each, what the other person asked or claimed and what the user wants to say back.
 
 2. **Check every claim.** List each factual claim the draft will make (what the code does, what a test showed, what the other person's fix would cause). Confirm each one against code you read or output you ran in this session, and run what is missing. Drop any claim you cannot confirm. Done when every claim in the draft has a source you can point to.
 

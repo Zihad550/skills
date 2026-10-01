@@ -14,7 +14,7 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 1. Collect the change: the current branch name, `git log <default-branch>..HEAD --oneline`, and the diff behind those commits. Read every issue the branch name or the commit messages reference:
 
    ```bash
-   zsh -ic "ti <issue-number>"
+   df-ti <issue-number>
    ```
 
    Run it once per issue number. When no issue number appears anywhere, ask which issues this PR relates to. Done when the problem, the solution, and the full issue list are known.

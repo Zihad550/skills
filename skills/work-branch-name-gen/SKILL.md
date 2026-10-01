@@ -10,10 +10,10 @@ Turn the issue numbers passed with the invocation into one proposed branch or wo
 
 1. Parse the arguments as one or more decimal issue numbers. Accept spaces or commas between numbers and preserve their input order. If any argument is not a decimal issue number, ask for corrected input. Done when the ordered issue-number list is unambiguous.
 
-2. Fetch every issue with the user's interactive Zsh environment:
+2. Fetch every issue with the `df-ti` script (on PATH from the dotfiles `bin`):
 
    ```bash
-   zsh -ic "ti <issue-number>"
+   df-ti <issue-number>
    ```
 
    Run the command once per issue, replacing `<issue-number>` with the validated decimal number. If a command fails or does not return issue details, report which issue could not be read and stop. Done when details are available for every issue.

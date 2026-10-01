@@ -10,7 +10,7 @@ Take the current branch from "code written" to "staged and ready for the user to
 
 ## Steps
 
-1. **Collect the change.** Read the branch diff against the merge base with the default branch, plus uncommitted changes: `git diff $(git merge-base HEAD origin/development)` and `git status --short`. Take the issue number from the branch name (`jd-<n>`) and read the issue with `zsh -ic "ti <n>"`. When an open PR exists for the branch, also read its review comments with `zsh -ic "tpr <pr>"`. Done when you hold the changed file list, every ask from the issue, and every unresolved review comment.
+1. **Collect the change.** Read the branch diff against the merge base with the default branch, plus uncommitted changes: `git diff $(git merge-base HEAD origin/development)` and `git status --short`. Take the issue number from the branch name (`jd-<n>`) and read the issue with `df-ti <n>`. When an open PR exists for the branch, also read its review comments with `df-tpr <pr>`. Done when you hold the changed file list, every ask from the issue, and every unresolved review comment.
 
 2. **Spec check.** Map every ask from step 1 to the change that satisfies it. Report each one as met, partial, or missing, with the file and line. Done when no ask is left unmapped. Stop and ask before going on when anything is partial or missing.
 
