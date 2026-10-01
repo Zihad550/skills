@@ -48,11 +48,12 @@ Done when the skill name appears in that list and `git status` in `~/dotfiles` i
 
 ## 6. Install globally
 
-Read the `AGENTS` array from `~/dotfiles/setup/common/setup-skills` — it is the source of truth for install targets — and run from `~`:
+Read the `AGENTS` array from `~/dotfiles/setup/common/setup-skills` — it is the source of truth for install targets — and run from `~`, naming every skill this change added or edited:
 
 ```bash
 cd ~ && skills add Zihad550/skills --skill <name> -g --agent <agents from AGENTS> -y
-skills update -g
 ```
 
-Done when `skills list` shows the new skill installed for each agent in `AGENTS`.
+Install with `--agent` only. `skills update -g` reinstalls without `--agent`, linking every updated skill into every detected agent, including `~/.claude/skills`, where it duplicates skills a Claude plugin already ships. To refresh all skills, re-run `~/dotfiles/setup/common/setup-skills` instead.
+
+Done when `~/.agents/skills/<name>/SKILL.md` and `~/.claude/skills/<name>/SKILL.md` both exist with the pushed content.
