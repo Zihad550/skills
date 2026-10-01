@@ -1,6 +1,6 @@
 ---
 name: work-wrap-up
-description: Finish a work branch: spec check, code review, the repo's loop, browser test, manual steps, stage, then offer the commit message and PR body.
+description: "Finish a work branch: spec check, code review, the repo's loop, browser test, manual steps, stage, then offer the commit message and PR body."
 disable-model-invocation: true
 ---
 

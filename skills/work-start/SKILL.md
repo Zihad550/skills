@@ -1,6 +1,6 @@
 ---
 name: work-start
-description: Start work on an issue or a PR: read it, reuse its worktree or create one, and brief the asks. Usage: /work-start <issue> or /work-start pr <pr>.
+description: "Start work on an issue or a PR: read it, reuse its worktree or create one, and brief the asks. Usage: /work-start <issue> or /work-start pr <pr>."
 disable-model-invocation: true
 ---
 
