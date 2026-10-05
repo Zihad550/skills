@@ -1,6 +1,6 @@
 ---
 name: work-start
-description: "Start work on an issue or a PR: read it, reuse its worktree or create one, and brief the asks. Usage: /work-start <issue> or /work-start pr <pr>."
+description: "Start work on an issue or a PR: read it, reuse its worktree or create one, hand off to a Claude session in its Herdr workspace, and brief the asks. Usage: /work-start <issue> or /work-start pr <pr>."
 disable-model-invocation: true
 ---
 
@@ -31,7 +31,17 @@ Put the session in the right worktree with the full picture of what is asked, an
 
    Done when `wt list --format=json` shows the chosen branch with its path, and you state that path. Every later read, edit, and command in this session runs against that path.
 
-5. **Brief.** Print, for the chosen worktree:
+5. **Hand off to the worktree's Herdr workspace.** Skip this step when `HERDR_ENV` is not `1`, or when this pane's `cwd` (`herdr pane current --current`) is already inside the chosen path — then this session is the one in the worktree, so go to step 6.
+
+   Otherwise move the work into a Claude session running in that worktree's workspace:
+   - Read `open_workspace_id` for the chosen path from `herdr worktree list --cwd <path>`. When it is empty, open the workspace with `herdr worktree open --cwd <path> --path <path> --focus` and take the root pane id from the response. When the command refuses for repository trust, ask the user before passing `--trust-repository`.
+   - When the workspace was already open, look in `herdr pane list --workspace <id>` for a pane whose `agent` is `claude`. An `idle` or `done` one is the target; a `working` or `blocked` one means someone is mid-task there, so report it and stop. With no Claude pane, create a shell pane with `herdr tab create --workspace <id> --cwd <path> --focus` and take its root pane id.
+   - In a shell pane, start Claude with `herdr agent start <issue|pr>-<n> --kind claude --pane <pane-id>` (on a name clash, append `-2`).
+   - Send it this skill's invocation: `herdr agent prompt <agent> "/work-start <original arguments>"`. That session finds the worktree from step 4, skips this step, and briefs.
+
+   Done when `herdr agent get <agent>` shows it `working` on the prompt. Tell the user the workspace and agent name, and stop: step 6 runs in that session, not here.
+
+6. **Brief.** Print, for the chosen worktree:
    - the asks as a checklist, each with who asked and where (issue body, comment, review comment with file and line);
    - for a PR, which review comments are still unresolved;
    - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one.
