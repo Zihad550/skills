@@ -44,6 +44,7 @@ Put the session in the right worktree with the full picture of what is asked, an
 6. **Brief.** Print, for the chosen worktree:
    - the asks as a checklist, each with who asked and where (issue body, comment, review comment with file and line);
    - for a PR, which review comments are still unresolved;
-   - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one.
+   - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one;
+   - when the worktree has uncommitted or unpushed changes, whether they pass: run the repo's typecheck, never a task that formats or writes files, and report the result with any failing lines, so existing work never reads as finished when it is not (on #933 the brief listed changes that failed `vue-tsc`, and the user had to ask whether they were done).
 
    Then stop and wait for the user to say how to proceed. Done when the brief is printed and no file in the worktree has changed.
