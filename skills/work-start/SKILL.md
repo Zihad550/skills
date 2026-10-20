@@ -22,6 +22,8 @@ Put the session in the right worktree with the full picture of what is asked, an
    - Issue: a candidate is a worktree or PR whose branch starts with `jd-<n>` (either `jd-<n>-` or `jd-<n>/`), or a PR whose body resolves `#<n>`.
    - PR: the candidate is the worktree whose `branch` equals the PR's head branch.
 
+   `wt list --format=json` prints an object (`schema`, `repo`, `items`, …), not an array; the worktrees are under `items`: `jq -c '.items[] | select(.branch == "<branch>") | {branch, path: .worktree.path}'`. On PR #925 a script that iterated the top level crashed with `'str' object has no attribute 'get'`.
+
    Done when each candidate is classified as open (its PR is open, or it has no PR yet) or merged.
 
 4. **Choose the worktree.**
