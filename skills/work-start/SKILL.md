@@ -62,6 +62,6 @@ git -C <path> pull --no-rebase origin <base>
 
 `pull` fetches and merges in one step, so the merge always takes the current base, and its default message matches the branch's earlier merge commits. `--no-rebase` keeps the pushed commits intact whatever `pull.rebase` says.
 
-Rerere is enabled, so a conflict resolved before in any worktree of the clone is replayed and staged silently (`Staged '<file>' using previous resolution`). Treat each replayed file as a resolution to confirm: show its diff against `HEAD` and ask whether to keep it. After restoring a file, `git checkout -m -- <file> && git rerere` replays the recorded resolution again. Resolve the remaining conflicts, run the repo's loop, and leave the merge staged for the user to commit.
+Rerere is enabled, so a conflict resolved before in any worktree of the clone is replayed and staged silently (`Staged '<file>' using previous resolution`). Treat each replayed file as a resolution to confirm: show its diff against `HEAD` and ask whether to keep it. After restoring a file, `git checkout -m -- <file> && git rerere` replays the recorded resolution again. Resolve the remaining conflicts, run the repo's loop, and leave the merge staged for the user to commit. A clean merge commits itself; name the merge commit in the report.
 
 Done when `git diff --name-only --diff-filter=U` prints nothing, the user has kept or replaced every replayed resolution, and the loop result is reported.
