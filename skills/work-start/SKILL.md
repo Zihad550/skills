@@ -33,9 +33,9 @@ Put the session in the right worktree with the full picture of what is asked, an
 
 5. **Hand off to the worktree's Herdr workspace.** Skip this step when `HERDR_ENV` is not `1`, or when this pane's `cwd` (`herdr pane current --current`) is already inside the chosen path — then this session is the one in the worktree, so go to step 6.
 
-   Otherwise move the work into a Claude session running in that worktree's workspace:
-   - Read `open_workspace_id` for the chosen path from `herdr worktree list --cwd <path>`. When it is empty, open the workspace with `herdr worktree open --cwd <path> --path <path> --focus` and take the root pane id from the response. When the command refuses for repository trust, ask the user before passing `--trust-repository`.
-   - When the workspace was already open, look in `herdr pane list --workspace <id>` for a pane whose `agent` is `claude`. An `idle` or `done` one is the target; a `working` or `blocked` one means someone is mid-task there, so report it and stop. With no Claude pane, create a shell pane with `herdr tab create --workspace <id> --cwd <path> --focus` and take its root pane id.
+   Otherwise move the work into a Claude session running in that worktree's workspace, without switching the user's focus to it:
+   - Read `open_workspace_id` for the chosen path from `herdr worktree list --cwd <path>`. When it is empty, open the workspace with `herdr worktree open --cwd <path> --path <path> --no-focus` and take the root pane id from the response. When the command refuses for repository trust, ask the user before passing `--trust-repository`.
+   - When the workspace was already open, look in `herdr pane list --workspace <id>` for a pane whose `agent` is `claude`. An `idle` or `done` one is the target; a `working` or `blocked` one means someone is mid-task there, so report it and stop. With no Claude pane, create a shell pane with `herdr tab create --workspace <id> --cwd <path> --no-focus` and take its root pane id.
    - In a shell pane, start Claude with `herdr agent start <issue|pr>-<n> --kind claude --pane <pane-id>` (on a name clash, append `-2`).
    - Send it this skill's invocation: `herdr agent prompt <agent> "/work-start <original arguments>"`. That session finds the worktree from step 4, skips this step, and briefs.
 
