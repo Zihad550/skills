@@ -1,6 +1,6 @@
 ---
 name: work-start
-description: "Start work on an issue or a PR: read it, reuse its worktree or create one, hand off to a Claude session in its Herdr workspace, and brief the asks. Usage: /work-start <issue> or /work-start pr <pr>."
+description: "Start work on an issue or a PR: read it, reuse its worktree or create one, hand off to a Claude session in its Herdr workspace, brief the asks, and bring a conflicting PR up to date with its base. Usage: /work-start <issue> or /work-start pr <pr>."
 disable-model-invocation: true
 ---
 
@@ -44,7 +44,22 @@ Put the session in the right worktree with the full picture of what is asked, an
 6. **Brief.** Print, for the chosen worktree:
    - the asks as a checklist, each with who asked and where (issue body, comment, review comment with file and line);
    - for a PR, which review comments are still unresolved;
+   - for a PR the tracker marks **Conflicting files**, which files conflict and why: `git -C <path> fetch origin <base>`, then `git -C <path> merge-tree --write-tree --name-only HEAD origin/<base>` lists them without touching the worktree, and name the base commits that edited each one;
    - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one;
    - when the worktree has uncommitted or unpushed changes, whether they pass: run the repo's typecheck, never a task that formats or writes files, and report the result with any failing lines, so existing work never reads as finished when it is not (on #933 the brief listed changes that failed `vue-tsc`, and the user had to ask whether they were done).
 
    Then stop and wait for the user to say how to proceed. Done when the brief is printed and no file in the worktree has changed.
+
+## Updating a PR branch with its base
+
+Run this once the user says to proceed on a PR that conflicts with, or is behind, its base. `<base>` is the left side of `df-tpr`'s `<base> <- <head>` line.
+
+```bash
+git -C <path> pull --no-rebase origin <base>
+```
+
+`pull` fetches and merges in one step, so the merge always takes the current base, and its default message matches the branch's earlier merge commits. `--no-rebase` keeps the pushed commits intact whatever `pull.rebase` says.
+
+Rerere is enabled, so a conflict resolved before in any worktree of the clone is replayed and staged silently (`Staged '<file>' using previous resolution`). Treat each replayed file as a resolution to confirm: show its diff against `HEAD` and ask whether to keep it. After restoring a file, `git checkout -m -- <file> && git rerere` replays the recorded resolution again. Resolve the remaining conflicts, run the repo's loop, and leave the merge staged for the user to commit.
+
+Done when `git diff --name-only --diff-filter=U` prints nothing, the user has kept or replaced every replayed resolution, and the loop result is reported.
