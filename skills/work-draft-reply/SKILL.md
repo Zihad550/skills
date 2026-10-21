@@ -17,7 +17,7 @@ Write one message the user sends themselves. Drafting is the whole job: the work
 
 4. **Polish.** Read `~/.agents/skills/unslop/SKILL.md` and apply it to the draft. Done when a reread finds none of its patterns.
 
-5. **Print it** under Output. Done when the draft copies out of the terminal as is.
+5. **Save it** under Output. Done when the draft file exists and the chat reply holds no copy of it.
 
 ## Shape
 
@@ -41,10 +41,12 @@ For a draft that goes to Forgejo (PR comment, issue comment, review reply), wrap
 
 ## Output
 
-- A draft with no backticks prints raw.
-- A draft containing backticks prints inside one fenced code block. The terminal renders markdown, so bare backticks turn into code styling and vanish from the text the user copies.
-- For a Forgejo comment, also write the draft to `/tmp/tea-comment-<number>.md` and give the one-line command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v` and `<login>` from `tea login ls`; `$(<file)` reads the file without a `cat` alias getting in the way:
+Write the draft to a file in `/tmp` and leave it out of the chat reply: the user reads and copies it through the `/drafts` panel, which lists `/tmp/tea-issue-*.md`, `/tmp/tea-comment-*.md` and `/tmp/draft-*.md`. Reply with the file path and one line saying what the draft says.
+
+- For a Forgejo comment, write it to `/tmp/tea-comment-<number>.md` and give the one-line command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v` and `<login>` from `tea login ls`; `$(<file)` reads the file without a `cat` alias getting in the way:
 
   ```bash
   tea comment <number> -l <login> -r <owner/repo> "$(</tmp/tea-comment-<number>.md)"
   ```
+
+- For anything else (a chat message, a question for a teammate), write it to `/tmp/draft-<slug>.md`, where `<slug>` is a short kebab-case name for the topic.

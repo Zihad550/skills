@@ -2,7 +2,7 @@
 name: draft-tea-command-for-issue-create
 displayName: Draft tea issue-create command
 description: Draft a Forgejo issue title and description for the user to discuss with a teammate, then give the exact tea CLI command to create it. Does not run the command.
-version: 1.2.0
+version: 1.3.0
 tags: [forgejo, tea, issues, drafting]
 ---
 # Instructions
@@ -10,8 +10,8 @@ tags: [forgejo, tea, issues, drafting]
 1. Draft only a title and a description, based on the current conversation, the codebase, and/or user-provided instructions. If either is unclear, explore the codebase and ask the user follow-up questions rather than guessing.
 2. Write in natural language. Never use em dashes. Use present tense for verbs (e.g. "filter", not "filters" or "filtered", unless grammar requires otherwise).
 3. When the draft is meant to prompt a discussion (e.g. "is this expected behavior?", "should we do X or Y?") rather than assert a bug, phrase the description as an open question, not a conclusion. State what was observed, how to reproduce it if applicable, and end with the actual question for the teammate.
-4. Show the drafted title and description to the user first and ask if they'd like changes, unless they've already approved the content earlier in the conversation.
-5. Show the body in chat as plain markdown, and write that same text to a short temp file at `/tmp/tea-issue-<slug>.md`. The chat copy is the preview the user reads; the file is what `tea` sends. Keep the two identical.
+4. Write the description to a short temp file at `/tmp/tea-issue-<slug>.md`. Leave the description out of the chat reply: the user reads it through the `/drafts` panel, which lists `/tmp/tea-issue-*.md`. The file is both the preview and what `tea` sends.
+5. Show the title in chat with the file path, and ask if they'd like changes, unless they've already approved the content earlier in the conversation. On changes, edit the file in place.
 6. Give the command as a **single line** that reads the body back from the file and passes the verified repository slug with `-r <owner/repo>`.
 ```bash
 tea issues create -l <login> -r <owner/repo> --title "<title>" --description "$(</tmp/tea-issue-<slug>.md)"
