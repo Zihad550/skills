@@ -28,4 +28,4 @@ Turn what went wrong in this conversation into rules that stop it happening agai
 
 6. **Apply the picks.** Make exactly the chosen edits. In `AGENTS.md`, edit only the lines for the picked lessons and leave every other line as it is, because the file may be shared across worktrees and running sessions. For a check-script rule, show that it fires on the offending line and count its hits on the current code before keeping it. Done when every picked lesson is applied and nothing else changed.
 
-7. **Report.** List each file you edited and what changed. Say plainly when an edited file is untracked (check `.git/info/exclude`: a file listed there never shows in `git status`). For a skill change, follow the `create-skill` skill's commit, register, and install steps. Done when the user can see every edit without running `git status`.
+7. **Report.** List each file you edited and what changed. Say plainly when an edited file is untracked (check `.git/info/exclude`: a file listed there never shows in `git status`). For a skill change, follow the `ship-skill` skill's commit, register, and install steps. Done when the user can see every edit without running `git status`.
