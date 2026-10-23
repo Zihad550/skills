@@ -3,7 +3,7 @@ name: work-pr-info
 displayName: Work PR title and description
 description: Draft a pull request title and body for a work repo, ready to paste into Forgejo.
 disable-model-invocation: true
-version: 1.2.0
+version: 1.3.0
 tags: [forgejo, pull-requests, drafting]
 ---
 
@@ -35,7 +35,7 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
    CI reads the `resolves:` lines to move each issue's label with the PR's state: approved sets ready to merge, request changes sets ready for dev, and merged sets ready for qa. `Related to` keeps a context issue out of that automation, so its label stays where it is. Never use `Refs`, and never put two issues on one line. When it is unclear whether the PR addresses an issue or only relates to it, ask. Done when every issue appears exactly once, every addressed issue matches `resolves: #<n>`, and every context issue matches `Related to #<n>`.
 
-6. Print the title and the body raw, with no blockquote markers, bold, or backticks wrapped around them, so the user copies them straight into Forgejo. Done when the output pastes as is.
+6. Write the title on the first line, a blank line, then the body to `/tmp/draft-pr-<n>.md`, where `<n>` is the first issue on a `resolves:` line (the first `Related to` issue when none resolves). Keep it in `/tmp` even when the session names a scratchpad directory: the user reads and copies it through the `/drafts` panel, which lists only `/tmp/tea-issue-*.md`, `/tmp/tea-comment-*.md` and `/tmp/draft-*.md`. Write plain text, so the file pastes into Forgejo as is. In the chat reply, give the file path and the title in one line, and keep the body in the file. Done when the file exists, its first line is the title, and the reply names its path.
 
 7. Hand over what sits outside the body, in your own words rather than as draft text:
 
