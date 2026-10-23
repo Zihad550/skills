@@ -1,6 +1,6 @@
 ---
 name: work-start
-description: "Start work on an issue or a PR: read it, reuse its worktree or create one, hand off to a Claude session in its Herdr workspace, brief the asks, and bring a conflicting PR up to date with its base. Usage: /work-start <issue> or /work-start pr <pr>."
+description: "Start work on an issue or a PR: read it, reuse its worktree or create one, hand off to a Claude session in its Herdr workspace (resuming the worktree's last session when there is one), brief the asks, and bring a conflicting PR up to date with its base. Usage: /work-start <issue> or /work-start pr <pr>."
 disable-model-invocation: true
 ---
 
@@ -33,12 +33,13 @@ Put the session in the right worktree with the full picture of what is asked, an
 
    Done when `wt list --format=json` shows the chosen branch with its path, and you state that path. Every later read, edit, and command in this session runs against that path.
 
-5. **Hand off to the worktree's Herdr workspace.** Skip this step when `HERDR_ENV` is not `1`, or when this pane's `cwd` (`herdr pane current --current`) is already inside the chosen path — then this session is the one in the worktree, so go to step 6.
+5. **Hand off to the worktree's Herdr workspace.** Skip this step when `HERDR_ENV` is not `1`, or when this pane's `cwd` (`herdr pane current --current`) is already inside the chosen path — then this session is the one in the worktree, so go to step 6. When skipping because `HERDR_ENV` is not `1` and a reused worktree has an earlier session (found as below), give the user `cd <path> && claude --resume <session-id>` in the brief.
 
    Otherwise move the work into a Claude session running in that worktree's workspace, without switching the user's focus to it:
    - Read `open_workspace_id` for the chosen path from `herdr worktree list --cwd <path>`. When it is empty, open the workspace with `herdr worktree open --cwd <path> --path <path> --no-focus` and take the root pane id from the response. When the command refuses for repository trust, ask the user before passing `--trust-repository`.
-   - When the workspace was already open, look in `herdr pane list --workspace <id>` for a pane whose `agent` is `claude`. An `idle` or `done` one is the target; a `working` or `blocked` one means someone is mid-task there, so report it and stop. With no Claude pane, create a shell pane with `herdr tab create --workspace <id> --cwd <path> --no-focus` and take its root pane id.
-   - In a shell pane, start Claude with `herdr agent start <issue|pr>-<n> --kind claude --pane <pane-id>` (on a name clash, append `-2`).
+   - When the workspace was already open, look in `herdr pane list --workspace <id>` for a pane whose `agent` is `claude`. An `idle` or `done` one is the target, since it is the session that ran there; a `working` or `blocked` one means someone is mid-task there, so report it and stop. With no Claude pane, create a shell pane with `herdr tab create --workspace <id> --cwd <path> --no-focus` and take its root pane id.
+   - Before starting Claude in a shell pane, look for the session that last ran in the worktree, so reused work keeps its context. Claude keeps transcripts under `~/.claude/projects/<path with every non-alphanumeric character replaced by ->/`; the newest one is `ls -t ~/.claude/projects/$(printf %s <path> | sed 's/[^a-zA-Z0-9]/-/g')/*.jsonl | head -1`, and its basename without `.jsonl` is the session id. Skip this for a branch step 4 just created.
+   - In a shell pane, start Claude with `herdr agent start <issue|pr>-<n> --kind claude --pane <pane-id>`, adding `-- --resume <session-id>` when a session was found (on a name clash, append `-2`). Name the resumed session id in the report.
    - Send it this skill's invocation: `herdr agent prompt <agent> "/work-start <original arguments>"`. That session finds the worktree from step 4, skips this step, and briefs.
 
    Done when `herdr agent get <agent>` shows it `working` on the prompt. Tell the user the workspace and agent name, and stop: step 6 runs in that session, not here.
