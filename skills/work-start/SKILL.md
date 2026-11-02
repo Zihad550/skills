@@ -48,7 +48,7 @@ Put the session in the right worktree with the full picture of what is asked, an
    - the asks as a checklist, each with who asked and where (issue body, comment, review comment with file and line);
    - for a PR, which review comments are still unresolved;
    - for a PR the tracker marks **Conflicting files**, which files conflict and why: `git -C <path> fetch origin <base>`, then `git -C <path> merge-tree --write-tree --name-only HEAD origin/<base>` lists them without touching the worktree, and name the base commits that edited each one;
-   - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one;
+   - the open questions only the user or the team can answer (copy, expected behaviour, scope), with the issue's own wording quoted when it already answers one. Search the code for every question it can settle (which routes, which callers, whether a case exists) and list only what remains, with what the search found; on #975 the brief asked whether any `?pid=` route lacked `:wid`, which two greps answered;
    - when the worktree has uncommitted or unpushed changes, whether they pass: run the repo's typecheck, never a task that formats or writes files, and report the result with any failing lines, so existing work never reads as finished when it is not (on #933 the brief listed changes that failed `vue-tsc`, and the user had to ask whether they were done).
 
    Then stop and wait for the user to say how to proceed. Done when the brief is printed and no file in the worktree has changed.
