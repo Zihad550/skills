@@ -45,9 +45,10 @@ A **review round** is a run on an open PR that has a review requesting changes. 
    ```bash
    tea api -X POST /repos/<owner>/<repo>/issues/<n>/labels -d '{"labels":["status/ready for review"]}'
    tea api -X PATCH /repos/<owner>/<repo>/issues/<n> -d '{"assignees":["<reviewer>"]}'
+   tea api -X PATCH /repos/<owner>/<repo>/issues/<n> -d '{"ref":"refs/heads/<branch>"}'
    ```
 
-   Done when the issue carries `status/ready for review` and the reviewer as its only assignee.
+   The `ref` field is the issue sidebar's Branch/Tag picker; `tea issue edit` has no flag for it. Done when the issue carries `status/ready for review`, the reviewer as its only assignee, and `ref` set to the branch.
 
 7. **Move the Linear task** to `In Review` by following `~/.agents/skills/work-status/SKILL.md`. Done when it prints the task's old and new status, or the task was already `In Review`.
 
