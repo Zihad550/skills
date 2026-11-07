@@ -6,19 +6,19 @@ disable-model-invocation: true
 
 # Work start
 
-Put the session in the right worktree with the full picture of what is asked, and stop before implementing. Run every `wt` and `tea` command from the repo the user is in; `wt` acts on the clone, so any worktree of it works.
+Put the session in the right worktree with the full picture of what is asked, and stop before implementing. Run every `wt` and `gt` command from the repo the user is in; `wt` acts on the clone, so any worktree of it works.
 
 ## Steps
 
 1. **Parse the target.** `pr <n>` (or a PR URL) is a pull request; a bare number is an issue. Done when you hold one number and its kind. Without a number, ask for one.
 
 2. **Read it.**
-   - Issue: `tea issue <n> --comments -o simple`. When the output shows the number is a pull request, switch to the PR branch of every later step.
-   - PR: `df-tpr <n>` for comments, inline review comments, and review bodies. Then read its state and head branch with `tea pulls ls --state all --limit 200 --fields index,state,head,title -o simple | awk '$1 == <n>'`, and read each issue its body lists under `resolves:` or `Related to`.
+   - Issue: `df-ti <n>`. When `gt issue view <n> --json kind --jq .kind` prints `pull`, the number is a pull request: switch to the PR branch of every later step.
+   - PR: `df-tpr <n>` prints its state, base and head branch, body, comments, inline review comments, and review bodies. Read each issue its body lists under `resolves:` or `Related to`.
 
    When the issue or PR has an image you cannot fetch, ask the user to paste it. Done when every ask, every unresolved review comment, and every linked issue has been read.
 
-3. **Find existing work.** List the worktrees with `wt list --format=json` and the open PRs with `tea pulls ls --state all --limit 200 --fields index,state,head,title -o simple`.
+3. **Find existing work.** List the worktrees with `wt list --format=json` and the PRs with `gt pr list --state all -L 200 --json number,state,head,title,body`.
    - Issue: a candidate is a worktree or PR whose branch starts with `jd-<n>` (either `jd-<n>-` or `jd-<n>/`), or a PR whose body resolves `#<n>`.
    - PR: the candidate is the worktree whose `branch` equals the PR's head branch.
 
@@ -55,7 +55,7 @@ Put the session in the right worktree with the full picture of what is asked, an
 
 ## Updating a PR branch with its base
 
-Run this once the user says to proceed on a PR that conflicts with, or is behind, its base. `<base>` is the left side of `df-tpr`'s `<base> <- <head>` line.
+Run this once the user says to proceed on a PR that conflicts with, or is behind, its base. `<base>` is the `base:` line of `df-tpr`.
 
 ```bash
 git -C <path> pull --no-rebase origin <base>

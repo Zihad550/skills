@@ -19,7 +19,7 @@ If you notice something that could be improved but does not affect the functiona
 1. Fetch the provided issue, including comments:
 
    ```sh
-   tea i ISSUE_NUMBER --comments
+   gt issue view ISSUE_NUMBER --comments
    ```
 
    Extract the issue's acceptance criteria, implementation context, and any constraints from the issue and comments. When an earlier comment already reported QA failures, list each one: this run re-checks them first. Done when you hold the acceptance criteria and the list of previously reported failures (or know there are none).
@@ -37,7 +37,7 @@ If you notice something that could be improved but does not affect the functiona
 
    Done when every affected feature has a recorded browser result, or a stated reason it cannot be reached from the UI.
 
-5. Before reporting any failure, search the open issues of every repo the gap touches (`tea issues ls --state open` in this repo and in `../frontend`, plus `../frontend/.scratch/`), and read the likely matches with `tea i <n> --comments`. A gap that an open issue already covers is tracked work: cite the issue instead of reporting a failure. Done when every failure has been checked against the open issues.
+5. Before reporting any failure, search the open issues of every repo the gap touches (`gt issue list --state open -L 200` in this repo and in `../frontend`, plus `../frontend/.scratch/`), and read the likely matches with `gt issue view <n> --comments`. A gap that an open issue already covers is tracked work: cite the issue instead of reporting a failure. Done when every failure has been checked against the open issues.
 
 6. Produce a final report that leads with the verdict:
 

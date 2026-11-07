@@ -26,7 +26,7 @@ Write one message the user sends themselves. Drafting is the whole job: the work
 - **Ask to verify, never to announce.** A question for the team asks what the expected behaviour is; it does not describe what the user built. When offering options, put each option on its own line.
 - **Disagreeing with a reviewer**: state the consequence of their suggestion ("if we apply your fix, two workspaces can share one ad account") and ask how they want to handle it.
 - **Proposing work**: say what we can do and what it improves, in that order.
-- **Tagging**: tag a person (`@name`) only when the user asks, using the username from tea output rather than a display name.
+- **Tagging**: tag a person (`@name`) only when the user asks, using the username from gt output rather than a display name.
 
 ## Plain text
 
@@ -41,12 +41,12 @@ For a draft that goes to Forgejo (PR comment, issue comment, review reply), wrap
 
 ## Output
 
-Write the draft to a file in `/tmp` and leave it out of the chat reply: the user reads and copies it through the `/drafts` panel, which lists `/tmp/tea-issue-*.md`, `/tmp/tea-comment-*.md` and `/tmp/draft-*.md`. Reply with the file path and one line saying what the draft says.
+Write the draft to a file in `/tmp` and leave it out of the chat reply: the user reads and copies it through the `/drafts` panel, which lists `/tmp/gt-issue-*.md`, `/tmp/gt-comment-*.md` and `/tmp/draft-*.md`. Reply with the file path and one line saying what the draft says.
 
-- For a Forgejo comment, write it to `/tmp/tea-comment-<number>.md` and give the one-line command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v` and `<login>` from `tea login ls`; `$(<file)` reads the file without a `cat` alias getting in the way:
+- For a Forgejo comment on an issue or a PR, write it to `/tmp/gt-comment-<number>.md` and give the command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v`:
 
   ```bash
-  tea comment <number> -l <login> -r <owner/repo> "$(</tmp/tea-comment-<number>.md)"
+  gt issue comment <number> -R <owner/repo> --body-file /tmp/gt-comment-<number>.md
   ```
 
 - For anything else (a chat message, a question for a teammate), write it to `/tmp/draft-<slug>.md`, where `<slug>` is a short kebab-case name for the topic.
