@@ -40,7 +40,7 @@ A **review round** is a run on an open PR that has a review requesting changes. 
 
    Done when each requested user's latest entry in `gt api repos/<owner>/<repo>/pulls/<pr>/reviews` is `REQUEST_REVIEW` and `gt pr view <pr> -R <owner>/<repo> --json assignees` is empty. `gt pr view --json reviews` leaves `REQUEST_REVIEW` entries out, so read them from the API. Forgejo keeps a change requester under `requested_reviewers` after their review, so that field cannot tell a re-request happened (PR #939 listed @timos there before the re-request).
 
-6. **Hand the issue over** with the dotfiles helpers, each run as its own plain command so auto mode reads one short line:
+6. **Hand the issue over** with the dotfiles helpers, each run as its own plain command so the permission prompt shows one short line:
 
    ```bash
    df-gt-set-issue-label <n> "status/ready for review" -R <owner>/<repo>
