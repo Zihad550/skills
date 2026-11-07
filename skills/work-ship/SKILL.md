@@ -40,14 +40,14 @@ A **review round** is a run on an open PR that has a review requesting changes. 
 
    Done when each requested user's latest entry in `gt api repos/<owner>/<repo>/pulls/<pr>/reviews` is `REQUEST_REVIEW` and `gt pr view <pr> -R <owner>/<repo> --json assignees` is empty. `gt pr view --json reviews` leaves `REQUEST_REVIEW` entries out, so read them from the API. Forgejo keeps a change requester under `requested_reviewers` after their review, so that field cannot tell a re-request happened (PR #939 listed @timos there before the re-request).
 
-6. **Hand the issue over.** Add the status label by name with `POST`, which drops the old `status/*` label and keeps every other label; `PUT` on that route replaces them all:
+6. **Hand the issue over** with the dotfiles helpers, each run as its own plain command so auto mode reads one short line:
 
    ```bash
-   gt api -X POST repos/<owner>/<repo>/issues/<n>/labels -F 'labels=["status/ready for review"]'
-   gt api -X PATCH repos/<owner>/<repo>/issues/<n> -F 'assignees=["<reviewer>"]' -f ref=refs/heads/<branch>
+   df-gt-set-issue-label <n> "status/ready for review" -R <owner>/<repo>
+   df-gt-set-assignee <n> <reviewer> -R <owner>/<repo> --ref refs/heads/<branch>
    ```
 
-   The `ref` field is the issue sidebar's Branch/Tag picker. Done when the issue carries `status/ready for review`, the reviewer as its only assignee, and `ref` set to the branch.
+   The label helper swaps the old `status/*` label and keeps every other label. `--ref` sets the issue sidebar's Branch/Tag picker. To drop one assignee and keep the rest, use `df-gt-remove-assignee <n> <login> -R <owner>/<repo>`. Done when the issue carries `status/ready for review`, the reviewer as its only assignee, and `ref` set to the branch.
 
 7. **Move the Linear task** to `In Review` by following `~/.agents/skills/work-status/SKILL.md`. Done when it prints the task's old and new status, or the task was already `In Review`.
 
