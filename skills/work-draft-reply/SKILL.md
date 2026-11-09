@@ -41,12 +41,12 @@ For a draft that goes to Forgejo (PR comment, issue comment, review reply), wrap
 
 ## Output
 
-Write the draft to a file in `/tmp` and leave it out of the chat reply: the user reads and copies it through the `/drafts` panel, which lists `/tmp/gt-issue-*.md`, `/tmp/gt-comment-*.md` and `/tmp/draft-*.md`. Reply with the file path and one line saying what the draft says.
+Write the draft to `<root>/tmp`, where `<root>` is the session's project root: where the session started, or where `/cd` or a worktree move took it; create `tmp/` when it is missing. Use it even when the session names a scratchpad directory: the user reads and copies the draft through the `/drafts` panel, which reads only `<root>/tmp`. Leave the draft out of the chat reply. Reply with the file's absolute path and one line saying what the draft says.
 
-- For a Forgejo comment on an issue or a PR, write it to `/tmp/gt-comment-<number>.md` and give the command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v`:
+- For a Forgejo comment on an issue or a PR, write it to `<root>/tmp/gt-comment-<number>.md` and give the command that posts it, for the user to run. Resolve `<owner/repo>` from the repo's `git remote -v`:
 
   ```bash
-  gt issue comment <number> -R <owner/repo> --body-file /tmp/gt-comment-<number>.md
+  gt issue comment <number> -R <owner/repo> --body-file <root>/tmp/gt-comment-<number>.md
   ```
 
-- For anything else (a chat message, a question for a teammate), write it to `/tmp/draft-<slug>.md`, where `<slug>` is a short kebab-case name for the topic.
+- For anything else (a chat message, a question for a teammate), write it to `<root>/tmp/draft-<slug>.md`, where `<slug>` is a short kebab-case name for the topic.
