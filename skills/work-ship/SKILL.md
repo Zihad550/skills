@@ -14,7 +14,7 @@ A **review round** is a run on an open PR that has a review requesting changes. 
 
 1. **Check the branch.** Read the branch name, take the issue number from it (`jd-<n>-...` or `jd-<n>/...`), and run `git log origin/development..HEAD --oneline` and `git status --short`. Look for an open PR whose head is this branch with `gt pr list -R <owner>/<repo> --head <branch> --json number,title`. With an open PR, read its reviews and list the change requesters. Done when you hold the issue number, at least one commit ahead of `development`, a clean working tree, the open PR number or none, and, for an open PR, whether this is a review round and who the change requesters are. Stop and report when the tree has uncommitted changes or the branch has no commits.
 
-2. **Draft the PR.** In a review round, compare the PR body with the commits pushed since the change request: when the body still describes the branch, keep it, say so in one line, and skip this step and step 4. Otherwise read `~/.agents/skills/work-pr-info/SKILL.md` and follow its steps 1 to 6; running inside this skill, the PR counts as ready for review unless the user said otherwise. Give the draft path and the title in one line, then stop until the user approves it or asks for changes. Done when the user has approved `<root>/tmp/draft-pr-<n>.md` (`<root>` as work-pr-info defines it) as it stands.
+2. **Draft the PR.** In a review round, compare the PR body with the commits pushed since the change request: when the body still describes the branch, keep it, say so in one line, and skip this step and step 4. Otherwise read `~/.agents/skills/work-pr-info/SKILL.md` and follow its steps 1 to 6; running inside this skill, the PR counts as ready for review unless the user said otherwise. Give the draft path and the title in one line, then stop until the user approves it or asks for changes. Done when the user has approved the title and `<root>/tmp/draft-pr-<n>.md` (`<root>` as work-pr-info defines it) as they stand.
 
 3. **Push.** Run the push as one plain command, with nothing chained before or after it:
 
@@ -24,13 +24,13 @@ A **review round** is a run on an open PR that has a review requesting changes. 
 
    A chained push was denied in auto mode before any prompt appeared. Done when the remote branch matches `HEAD`.
 
-4. **Open or update the PR.** Write the draft's body, everything after its title and blank line, to a scratchpad file. With no open PR from step 1, create one:
+4. **Open or update the PR.** Pass the approved draft file straight to `--body-file`, and run the command as one plain command with the title and path written out literally. With no open PR from step 1, create one:
 
    ```bash
-   gt pr create -R <owner>/<repo> --base development --head <branch> --title "<title>" --body-file <body-file>
+   gt pr create -R <owner>/<repo> --base development --head <branch> --title "<title>" --body-file <root>/tmp/draft-pr-<n>.md
    ```
 
-   With an open PR, run `gt pr edit <pr> -R <owner>/<repo>` with the same `--title` and `--body-file`. The body is the draft exactly, with no attribution line added. Done when the PR shows the draft's title and body.
+   With an open PR, run `gt pr edit <pr> -R <owner>/<repo>` with the same `--title` and `--body-file`. The body is the draft exactly, with no attribution line added. #973's command built the body file through a shell variable, and its permission prompt said "A variable in this command can't be checked before it runs". Done when the PR shows the approved title and the draft file's exact content.
 
 5. **Request review.** Request the reviewer, or in a review round every change requester, through the reviewer field and leave the PR's assignees empty:
 
