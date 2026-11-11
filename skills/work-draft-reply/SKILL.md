@@ -26,7 +26,7 @@ Write one message the user sends themselves. Drafting is the whole job: the work
 - **Ask to verify, never to announce.** A question for the team asks what the expected behaviour is; it does not describe what the user built. When offering options, put each option on its own line.
 - **Disagreeing with a reviewer**: state the consequence of their suggestion ("if we apply your fix, two workspaces can share one ad account") and ask how they want to handle it.
 - **Proposing work**: say what we can do and what it improves, in that order.
-- **Tagging**: tag a person (`@name`) only when the user asks, using the username from gt output rather than a display name.
+- **Tagging**: tag a person (`@name`) when the message asks them a question or needs their decision, and otherwise only when the user asks, using the username from gt output rather than a display name. PR #982's question to the reviewer went untagged and the user stopped the post to add it.
 
 ## Plain text
 
