@@ -23,6 +23,7 @@ Write one message the user sends themselves. Drafting is the whole job: the work
 
 - **Lead with the point**: the finding, the decision, or the question. Then the exact evidence (the error text, the observed result). Then the question or the next step. Nothing else: side notes, alternatives nobody asked about, and test narration stay out unless the user asks for them.
 - **Compact means fewer words**, not a different layout. Default to two to four sentences. With several points, one sentence each, as numbered points.
+- **Answer only what was asked**, one sentence per question, and leave out status the user didn't ask to share (what is local, pushed, or not yet a PR). A #938 reply to a reviewer went from three paragraphs to one sentence after the user cut it.
 - **Ask to verify, never to announce.** A question for the team asks what the expected behaviour is; it does not describe what the user built. When offering options, put each option on its own line.
 - **Disagreeing with a reviewer**: state the consequence of their suggestion ("if we apply your fix, two workspaces can share one ad account") and ask how they want to handle it.
 - **Proposing work**: say what we can do and what it improves, in that order.
