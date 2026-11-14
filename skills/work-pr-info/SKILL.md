@@ -3,7 +3,7 @@ name: work-pr-info
 displayName: Work PR title and description
 description: Draft a pull request title and body for a work repo, ready to paste into Forgejo.
 disable-model-invocation: true
-version: 1.5.0
+version: 1.6.0
 tags: [forgejo, pull-requests, drafting]
 ---
 
@@ -23,9 +23,9 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
 3. Draft the title: one line naming the change from the reader's side, specific enough to tell it apart from the other open PRs. Prefix `WIP: ` when step 2 landed on not ready. Done when the title names the actual change, and carries the prefix only in the not-ready case.
 
-4. Draft the body: exactly two paragraphs, the first on the problem, the second on the solution, plus the reference lines from step 5. Write plain text, full sentences, present tense, with numbered points when a list is needed. Skip em dashes, en dashes, hyphens as punctuation, and hyphenated compounds (write "per workspace", not "workspace-scoped"). Everything that is neither the problem nor the solution travels to step 7 instead: caveats, known gaps, test evidence, follow-up work, and anything a product owner still has to confirm. Done when the body is two paragraphs, and a reviewer who has not read the diff can say what was wrong and what the change does about it.
+4. Draft the body by reading `~/.agents/skills/pr/SKILL.md` (the `pr` skill from `mattpocock/skills`) and following its template: Summary, Evidence, Merge Danger. Label each piece of evidence as live, mocked or not run, naming what was mocked. Known gaps and bugs left unfixed go under Merge Danger. Follow-up work and anything a product owner still has to confirm have no section in the template, so they travel to step 7. Done when every template section is filled from the change, and a reviewer who has not read the diff can say what was wrong and what the change does about it.
 
-5. Close the body with one reference line per issue from step 1, each on its own line. An issue this PR addresses gets a lowercase `resolves:` line with a colon; an issue mentioned only for context, which this PR does not address, gets a `Related to` line instead:
+5. Close the body, after Merge Danger, with one reference line per issue from step 1, each on its own line. An issue this PR addresses gets a lowercase `resolves:` line with a colon; an issue mentioned only for context, which this PR does not address, gets a `Related to` line instead:
 
    ```text
    resolves: #871
@@ -35,11 +35,11 @@ Draft one title and one body for a pull request the user opens themselves. Draft
 
    CI reads the `resolves:` lines to move each issue's label with the PR's state: approved sets ready to merge, request changes sets ready for dev, and merged sets ready for qa. `Related to` keeps a context issue out of that automation, so its label stays where it is. Never use `Refs`, and never put two issues on one line. When it is unclear whether the PR addresses an issue or only relates to it, ask. Done when every issue appears exactly once, every addressed issue matches `resolves: #<n>`, and every context issue matches `Related to #<n>`.
 
-6. Write the body alone to `<root>/tmp/draft-pr-<n>.md`, where `<root>` is the session's project root: where the session started, or where `/cd` or a worktree move took it, and `<n>` is the first issue on a `resolves:` line (the first `Related to` issue when none resolves). Create `tmp/` when it is missing, and use it even when the session names a scratchpad directory: the user reads and copies the draft through the `/drafts` panel, which reads only `<root>/tmp`. Write plain text, so the file pastes into Forgejo as is and `--body-file` takes it unchanged. In the chat reply, give the file's absolute path and the title in one line, and keep the body in the file. Done when the file exists, its first line opens the problem paragraph, and the reply names its path and the title.
+6. Write the body alone to `<root>/tmp/draft-pr-<n>.md`, where `<root>` is the session's project root: where the session started, or where `/cd` or a worktree move took it, and `<n>` is the first issue on a `resolves:` line (the first `Related to` issue when none resolves). Create `tmp/` when it is missing, and use it even when the session names a scratchpad directory: the user reads and copies the draft through the `/drafts` panel, which reads only `<root>/tmp`. Write Markdown that Forgejo renders as is, so the file pastes in unchanged and `--body-file` takes it unchanged. In the chat reply, give the file's absolute path and the title in one line, and keep the body in the file. Done when the file exists, its first line is the `## Summary` heading, and the reply names its path and the title.
 
 7. Hand over what sits outside the body, in your own words rather than as draft text:
 
    - The Forgejo UI jobs, with the branch name and issue numbers filled in: link the PR branch to each issue from step 1, and request a new review after any push that follows an approval.
-   - Each item step 4 kept out of the body, named in one line, with where it would live instead, such as a review comment or a comment on the issue. Offer to write the ones the user wants.
+   - Each item step 4 sent here, named in one line, with where it would live instead, such as a review comment or a comment on the issue. Offer to write the ones the user wants.
 
-   Done when both parts are stated concretely and every item step 4 set aside appears here.
+   Done when both parts are stated concretely and every item step 4 sent here appears.
