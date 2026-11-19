@@ -16,7 +16,7 @@ Turn what went wrong in this conversation into rules that stop it happening agai
 
 3. **Route each rule** to the first home that fits:
    - **A fixed pattern** a regex can match on one line (a banned API, a class name, a call shape): the repo's automated check, when its `AGENTS.md` names one (such as `.agents/scripts/check-diff.py`), plus the rule's line in `AGENTS.md`.
-   - **A workflow** (a sequence of steps the agent skipped or ran out of order): the skill that owns that workflow. Skill sources live in `~/dev/src/github.com/Zihad550/skills`; edit them there.
+   - **A workflow** (a sequence of steps the agent skipped or ran out of order): the skill that owns that workflow. Skill sources live in the skills repo, `~/hq/skills` on the host and `~/skills` in a devvm VM; edit them there.
    - **A browser-testing gotcha** (locators, mocks, test data): the repo's browser-testing doc, when its `AGENTS.md` points to one (such as `docs/agents/browser-testing.md`).
    - **Everything else**: the section of the repo's `AGENTS.md` it belongs to, following that file's "Keeping this file current" section; the Failure log only when no section fits.
 
