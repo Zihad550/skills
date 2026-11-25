@@ -19,10 +19,10 @@ When it fails, say this session is not inside Herdr and stop. Run `herdr --skill
 
 ## 2. Create the worktree
 
-Put the checkout beside the primary checkout as `<primary>.<branch>`, with `/` in the branch turned into `-`. Find the primary checkout with the first entry of `git worktree list --porcelain`, so creation from a linked worktree lands beside the primary one.
+Find the primary checkout with the first entry of `git worktree list --porcelain`. Herdr creates worktrees only from it and fails with `linked_worktree_source` from a linked one. Put the checkout beside it as `<primary>.<branch>`, with `/` in the branch turned into `-`.
 
 ```bash
-herdr worktree create --cwd "$PWD" --branch <branch> --path <primary>.<branch-with-hyphens> --label <branch> --no-focus
+herdr worktree create --cwd <primary> --branch <branch> --path <primary>.<branch-with-hyphens> --label <branch> --no-focus
 ```
 
 Done when the JSON reports `worktree_created`. Keep `.result.root_pane.pane_id`.
