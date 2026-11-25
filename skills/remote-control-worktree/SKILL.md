@@ -1,6 +1,6 @@
 ---
 name: remote-control-worktree
-description: Open a git worktree in Herdr and start Claude Code there with Remote Control on, so the session can be driven from the phone. Use when asked for a worktree, or a new Claude session in one, with Remote Control. Usage: /remote-control-worktree <branch> [task prompt].
+description: "Open a git worktree in Herdr and start Claude Code there with Remote Control on, so the session can be driven from the phone. Use when asked for a worktree, or a new Claude session in one, with Remote Control. Usage: /remote-control-worktree <branch> [task prompt]."
 ---
 
 # Remote Control worktree
